@@ -40,6 +40,7 @@ static int usage(const char *progname)
 		"                                    (implies --keep-client-id)\n"
 		wds_helptext
 		dms_helptext
+		nas_helptext
 		"\n", progname);
 	return 1;
 }

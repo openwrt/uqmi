@@ -96,6 +96,7 @@ cmd_set_client_id_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct q
 
 #include "commands-wds.c"
 #include "commands-dms.c"
+#include "commands-nas.c"
 
 #define __uqmi_command(_name, _optname, _arg, _type) \
 	[__UQMI_COMMAND_##_name] = { \
