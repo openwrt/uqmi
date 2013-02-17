@@ -45,6 +45,15 @@ cmd_nas_set_network_modes_prepare(struct qmi_dev *qmi, struct qmi_request *req, 
 	return QMI_CMD_REQUEST;
 }
 
+#define cmd_nas_initiate_network_register_cb no_cb
+static enum qmi_cmd_result
+cmd_nas_initiate_network_register_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
+{
+	static struct qmi_nas_initiate_network_register_request register_req;
+	qmi_set_nas_initiate_network_register_request(msg, &register_req);
+	return QMI_CMD_REQUEST;
+}
+
 static void
 cmd_nas_get_signal_info_cb(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg)
 {
