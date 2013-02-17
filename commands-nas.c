@@ -100,3 +100,43 @@ cmd_nas_get_signal_info_prepare(struct qmi_dev *qmi, struct qmi_request *req, st
 	qmi_set_nas_get_signal_info_request(msg);
 	return QMI_CMD_REQUEST;
 }
+
+static void
+cmd_nas_get_serving_system_cb(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg)
+{
+	struct qmi_nas_get_serving_system_response res;
+	static const char *reg_states[] = {
+		[QMI_NAS_REGISTRATION_STATE_NOT_REGISTERED] = "not_registered",
+		[QMI_NAS_REGISTRATION_STATE_REGISTERED] = "registered",
+		[QMI_NAS_REGISTRATION_STATE_NOT_REGISTERED_SEARCHING] = "searching",
+		[QMI_NAS_REGISTRATION_STATE_REGISTRATION_DENIED] = "registering_denied",
+		[QMI_NAS_REGISTRATION_STATE_UNKNOWN] = "unknown",
+	};
+
+	qmi_parse_nas_get_serving_system_response(msg, &res);
+
+	if (res.set.serving_system) {
+		int state = res.data.serving_system.registration_state;
+
+		if (state > QMI_NAS_REGISTRATION_STATE_UNKNOWN)
+			state = QMI_NAS_REGISTRATION_STATE_UNKNOWN;
+
+		blobmsg_add_string(&status, "registration", reg_states[state]);
+	}
+	if (res.set.current_plmn) {
+		blobmsg_add_u32(&status, "plmn_mcc", res.data.current_plmn.mcc);
+		blobmsg_add_u32(&status, "plmn_mnc", res.data.current_plmn.mnc);
+		if (res.data.current_plmn.description)
+			blobmsg_add_string(&status, "plmn_description", res.data.current_plmn.description);
+	}
+
+	if (res.set.roaming_indicator)
+		blobmsg_add_u8(&status, "roaming", !res.data.roaming_indicator);
+}
+
+static enum qmi_cmd_result
+cmd_nas_get_serving_system_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
+{
+	qmi_set_nas_get_serving_system_request(msg);
+	return QMI_CMD_REQUEST;
+}
