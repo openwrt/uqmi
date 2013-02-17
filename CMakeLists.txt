@@ -35,10 +35,16 @@ FOREACH(service ctl dms nas pds wds wms)
 	SET(service_sources ${service_sources} qmi-message-${service}.c)
 ENDFOREACH()
 
+ADD_CUSTOM_COMMAND(
+	OUTPUT qmi-errors.c
+	COMMAND ./data/gen-error-list.pl ./qmi-errors.h > qmi-errors.c
+	DEPENDS ./data/gen-error-list.pl ./qmi-errors.h
+)
+ADD_CUSTOM_TARGET(gen-errors DEPENDS qmi-errors.c)
 ADD_CUSTOM_TARGET(gen-headers DEPENDS ${service_headers})
 
 ADD_EXECUTABLE(uqmi ${SOURCES} ${service_sources})
-ADD_DEPENDENCIES(uqmi gen-headers)
+ADD_DEPENDENCIES(uqmi gen-headers gen-errors)
 
 TARGET_LINK_LIBRARIES(uqmi ${LIBS})
 
