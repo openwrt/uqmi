@@ -91,5 +91,6 @@ static inline bool qmi_request_pending(struct qmi_request *req)
 int qmi_service_connect(struct qmi_dev *qmi, QmiService svc, int client_id);
 int qmi_service_get_client_id(struct qmi_dev *qmi, QmiService svc);
 QmiService qmi_service_get_by_name(const char *str);
+const char *qmi_get_error_str(int code);
 
 #endif

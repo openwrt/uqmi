@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <string.h>
 #include "uqmi.h"
+#include "qmi-errors.h"
+#include "qmi-errors.c"
 
 #define __qmi_service(_n) [__##_n] = _n
 static const uint8_t qmi_services[__QMI_SERVICE_LAST] = {
@@ -334,4 +336,16 @@ QmiService qmi_service_get_by_name(const char *str)
 	}
 
 	return -1;
+}
+
+const char *qmi_get_error_str(int code)
+{
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(qmi_errors); i++) {
+		if (qmi_errors[i].code == code)
+			return qmi_errors[i].text;
+	}
+
+	return "Unknown error";
 }
