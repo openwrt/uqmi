@@ -22,6 +22,7 @@ $prefix eq 'ctl_' and $ctl = 1;
 sub get_json() {
 	local $/;
 	my $json = <>;
+	$json =~ s/^\s*\/\/ .*$//mg;
 	return decode_json($json);
 }
 
