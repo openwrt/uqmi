@@ -1,8 +1,11 @@
 #ifndef __UQMI_H
 #define __UQMI_H
 
+#include <stdbool.h>
+
 #include <libubox/uloop.h>
 #include <libubox/ustream.h>
+
 #include "qmi-message.h"
 
 #ifdef DEBUG_PACKET
@@ -76,6 +79,7 @@ struct qmi_request {
 	int ret;
 };
 
+extern bool cancel_all_requests;
 int qmi_device_open(struct qmi_dev *qmi, const char *path);
 void qmi_device_close(struct qmi_dev *qmi);
 

@@ -62,25 +62,31 @@ cmd_nas_get_signal_info_cb(struct qmi_dev *qmi, struct qmi_request *req, struct 
 	qmi_parse_nas_get_signal_info_response(msg, &res);
 
 	if (res.set.cdma_signal_strength) {
+		blobmsg_add_string(&status, "type", "cdma");
 		blobmsg_add_u32(&status, "rssi", (int32_t) res.data.cdma_signal_strength.rssi);
 		blobmsg_add_u32(&status, "ecio", (int32_t) res.data.cdma_signal_strength.ecio);
 	}
 
 	if (res.set.hdr_signal_strength) {
+		blobmsg_add_string(&status, "type", "hdr");
 		blobmsg_add_u32(&status, "rssi", (int32_t) res.data.hdr_signal_strength.rssi);
 		blobmsg_add_u32(&status, "ecio", (int32_t) res.data.hdr_signal_strength.ecio);
 		blobmsg_add_u32(&status, "io", res.data.hdr_signal_strength.io);
 	}
 
-	if (res.set.gsm_signal_strength)
+	if (res.set.gsm_signal_strength) {
+		blobmsg_add_string(&status, "type", "gsm");
 		blobmsg_add_u32(&status, "signal", (int32_t) res.data.gsm_signal_strength);
+	}
 
 	if (res.set.wcdma_signal_strength) {
+		blobmsg_add_string(&status, "type", "wcdma");
 		blobmsg_add_u32(&status, "rssi", (int32_t) res.data.wcdma_signal_strength.rssi);
 		blobmsg_add_u32(&status, "ecio", (int32_t) res.data.wcdma_signal_strength.ecio);
 	}
 
 	if (res.set.lte_signal_strength) {
+		blobmsg_add_string(&status, "type", "lte");
 		blobmsg_add_u32(&status, "rssi", (int32_t) res.data.lte_signal_strength.rssi);
 		blobmsg_add_u32(&status, "rsrq", (int32_t) res.data.lte_signal_strength.rsrq);
 		blobmsg_add_u32(&status, "rsrp", (int32_t) res.data.lte_signal_strength.rsrp);

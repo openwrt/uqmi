@@ -7,6 +7,8 @@
 #include "qmi-errors.h"
 #include "qmi-errors.c"
 
+bool cancel_all_requests = false;
+
 #define __qmi_service(_n) [__##_n] = _n
 static const uint8_t qmi_services[__QMI_SERVICE_LAST] = {
 	__qmi_services
@@ -55,10 +57,14 @@ static void __qmi_request_complete(struct qmi_dev *qmi, struct qmi_request *req,
 	req->pending = false;
 	list_del(&req->list);
 
-	tlv_buf = qmi_msg_get_tlv_buf(msg, &tlv_len);
-	req->ret = qmi_check_message_status(tlv_buf, tlv_len);
-	if (req->ret)
-		msg = NULL;
+	if (msg) {
+		tlv_buf = qmi_msg_get_tlv_buf(msg, &tlv_len);
+		req->ret = qmi_check_message_status(tlv_buf, tlv_len);
+		if (req->ret)
+			msg = NULL;
+	} else {
+		req->ret = QMI_ERROR_CANCELLED;
+	}
 
 	if (req->cb && (msg || !req->no_error_cb))
 		req->cb(qmi, req, msg);
@@ -174,6 +180,10 @@ int qmi_request_wait(struct qmi_dev *qmi, struct qmi_request *req)
 		cancelled = uloop_cancelled;
 		uloop_cancelled = false;
 		uloop_run();
+
+		if (cancel_all_requests)
+			qmi_request_cancel(qmi, req);
+
 		uloop_cancelled = cancelled;
 	}
 

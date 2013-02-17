@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <getopt.h>
+#include <signal.h>
 
 #include "uqmi.h"
 #include "commands.h"
@@ -55,10 +56,20 @@ static void keep_client_id(struct qmi_dev *qmi, const char *optarg)
 	qmi_service_get_client_id(qmi, svc);
 }
 
+static void handle_exit_signal(int signal)
+{
+	cancel_all_requests = true;
+	uloop_end();
+}
+
 int main(int argc, char **argv)
 {
 	static struct qmi_dev dev;
 	int ch;
+
+	uloop_init();
+	signal(SIGINT, handle_exit_signal);
+	signal(SIGTERM, handle_exit_signal);
 
 	while ((ch = getopt_long(argc, argv, "d:k:", uqmi_getopt, NULL)) != -1) {
 		int cmd_opt = CMD_OPT(ch);
