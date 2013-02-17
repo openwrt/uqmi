@@ -52,10 +52,8 @@ cmd_dms_get_pin_status_prepare(struct qmi_dev *qmi, struct qmi_request *req, str
 
 static void cmd_dms_verify_pin1_cb(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg)
 {
-	struct qmi_dms_uim_verify_pin_response res;
-
 	if (!msg) {
-		fprintf(stderr, "failed\n");
+		printf("failed\n");
 		return;
 	}
 
