@@ -35,7 +35,7 @@ cmd_nas_set_network_modes_prepare(struct qmi_dev *qmi, struct qmi_request *req, 
 		}
 
 		if (!found) {
-			fprintf(stderr, "Invalid network mode '%s'\n", word);
+			blobmsg_add_string(&status, "error", "Invalid network mode");
 			return QMI_CMD_EXIT;
 		}
 	}
@@ -61,32 +61,31 @@ cmd_nas_get_signal_info_cb(struct qmi_dev *qmi, struct qmi_request *req, struct 
 
 	qmi_parse_nas_get_signal_info_response(msg, &res);
 
-	if (res.set.cdma_signal_strength)
-		printf("cdma_rssi=%d\ncdma_ecio=%d\n",
-			res.data.cdma_signal_strength.rssi,
-			res.data.cdma_signal_strength.ecio);
+	if (res.set.cdma_signal_strength) {
+		blobmsg_add_u32(&status, "rssi", (int32_t) res.data.cdma_signal_strength.rssi);
+		blobmsg_add_u32(&status, "ecio", (int32_t) res.data.cdma_signal_strength.ecio);
+	}
 
-	if (res.set.hdr_signal_strength)
-		printf("hdr_rssi=%d\nhdr_ecio=%d\nhdr_io=%d\n",
-			res.data.hdr_signal_strength.rssi,
-			res.data.hdr_signal_strength.ecio,
-			res.data.hdr_signal_strength.io);
+	if (res.set.hdr_signal_strength) {
+		blobmsg_add_u32(&status, "rssi", (int32_t) res.data.hdr_signal_strength.rssi);
+		blobmsg_add_u32(&status, "ecio", (int32_t) res.data.hdr_signal_strength.ecio);
+		blobmsg_add_u32(&status, "io", res.data.hdr_signal_strength.io);
+	}
 
 	if (res.set.gsm_signal_strength)
-		printf("gsm_rssi=%d\n", res.data.gsm_signal_strength);
+		blobmsg_add_u32(&status, "signal", (int32_t) res.data.gsm_signal_strength);
 
-	if (res.set.wcdma_signal_strength)
-		printf("wcdma_rssi=%d\nwcdma_ecio=%d\n",
-			res.data.wcdma_signal_strength.rssi,
-			res.data.wcdma_signal_strength.ecio);
+	if (res.set.wcdma_signal_strength) {
+		blobmsg_add_u32(&status, "rssi", (int32_t) res.data.wcdma_signal_strength.rssi);
+		blobmsg_add_u32(&status, "ecio", (int32_t) res.data.wcdma_signal_strength.ecio);
+	}
 
-	if (res.set.lte_signal_strength)
-		printf("lte_rssi=%d\nlte_rsrq=%d\nlte_rsrp=%d\nlte_snr=%d\n",
-			res.data.lte_signal_strength.rssi,
-			res.data.lte_signal_strength.rsrq,
-			res.data.lte_signal_strength.rsrp,
-			res.data.lte_signal_strength.snr);
-
+	if (res.set.lte_signal_strength) {
+		blobmsg_add_u32(&status, "rssi", (int32_t) res.data.lte_signal_strength.rssi);
+		blobmsg_add_u32(&status, "rsrq", (int32_t) res.data.lte_signal_strength.rsrq);
+		blobmsg_add_u32(&status, "rsrp", (int32_t) res.data.lte_signal_strength.rsrp);
+		blobmsg_add_u32(&status, "snr", (int32_t) res.data.lte_signal_strength.snr);
+	}
 }
 
 static enum qmi_cmd_result

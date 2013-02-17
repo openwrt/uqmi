@@ -26,20 +26,14 @@ static void cmd_dms_get_pin_status_cb(struct qmi_dev *qmi, struct qmi_request *r
 
 	qmi_parse_dms_uim_get_pin_status_response(msg, &res);
 	if (res.set.pin1_status) {
-		printf("pin1_status=%s\n"
-			   "pin1_verify_tries=%d\n"
-			   "pin1_unblock_tries=%d\n",
-			   get_pin_status(res.data.pin1_status.current_status),
-			   res.data.pin1_status.verify_retries_left,
-			   res.data.pin1_status.unblock_retries_left);
+		blobmsg_add_string(&status, "pin1_status", get_pin_status(res.data.pin1_status.current_status));
+		blobmsg_add_u32(&status, "pin1_verify_tries", (int32_t) res.data.pin1_status.verify_retries_left);
+		blobmsg_add_u32(&status, "pin1_unblock_tries", (int32_t) res.data.pin1_status.unblock_retries_left);
 	}
 	if (res.set.pin2_status) {
-		printf("pin2_status=%s\n"
-			   "pin2_verify_tries=%d\n"
-			   "pin2_unblock_tries=%d\n",
-			   get_pin_status(res.data.pin2_status.current_status),
-			   res.data.pin2_status.verify_retries_left,
-			   res.data.pin2_status.unblock_retries_left);
+		blobmsg_add_string(&status, "pin2_status", get_pin_status(res.data.pin2_status.current_status));
+		blobmsg_add_u32(&status, "pin2_verify_tries", (int32_t) res.data.pin2_status.verify_retries_left);
+		blobmsg_add_u32(&status, "pin2_unblock_tries", (int32_t) res.data.pin2_status.unblock_retries_left);
 	}
 }
 
@@ -50,16 +44,7 @@ cmd_dms_get_pin_status_prepare(struct qmi_dev *qmi, struct qmi_request *req, str
 	return QMI_CMD_REQUEST;
 }
 
-static void cmd_dms_verify_pin1_cb(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg)
-{
-	if (!msg) {
-		printf("failed\n");
-		return;
-	}
-
-	printf("ok\n");
-}
-
+#define cmd_dms_verify_pin1_cb no_cb
 static enum qmi_cmd_result
 cmd_dms_verify_pin1_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
 {
@@ -73,7 +58,7 @@ cmd_dms_verify_pin1_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct
 	return QMI_CMD_REQUEST;
 }
 
-#define cmd_dms_verify_pin2_cb cmd_dms_verify_pin1_cb
+#define cmd_dms_verify_pin2_cb no_cb
 static enum qmi_cmd_result
 cmd_dms_verify_pin2_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
 {

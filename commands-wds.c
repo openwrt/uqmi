@@ -26,7 +26,7 @@ cmd_wds_set_auth_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qm
 		return QMI_CMD_DONE;
 	}
 
-	fprintf(stderr, "Invalid auth mode (valid: pap, chap, both, none)\n");
+	blobmsg_add_string(&status, "error", "Invalid auth mode (valid: pap, chap, both, none)");
 	return QMI_CMD_EXIT;
 }
 

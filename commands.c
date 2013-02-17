@@ -3,8 +3,13 @@
 #include <strings.h>
 #include <stdlib.h>
 #include <unistd.h>
+
+#include <libubox/blobmsg.h>
+
 #include "uqmi.h"
 #include "commands.h"
+
+static struct blob_buf status;
 
 static void no_cb(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg)
 {
@@ -13,19 +18,13 @@ static void no_cb(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *
 static void cmd_version_cb(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg)
 {
 	struct qmi_ctl_get_version_info_response res;
+	char name_buf[16];
 	int i;
 
-	if (!msg) {
-		printf("Request version failed: %d\n", req->ret);
-		return;
-	}
-
 	qmi_parse_ctl_get_version_info_response(msg, &res);
-
-	printf("Found %d: services:\n", res.data.service_list_n);
 	for (i = 0; i < res.data.service_list_n; i++) {
-		printf("Service %d, version: %d.%d\n",
-			res.data.service_list[i].service,
+		sprintf(name_buf, "service_%d", res.data.service_list[i].service);
+		blobmsg_printf(&status, name_buf, "%d,%d",
 			res.data.service_list[i].major_version,
 			res.data.service_list[i].minor_version);
 	}
@@ -123,6 +122,26 @@ void uqmi_add_command(char *arg, int cmd)
 	cmds[idx].arg = optarg;
 }
 
+static void uqmi_print_result(struct blob_attr *data)
+{
+	struct blob_attr *cur;
+	int rem;
+
+	blob_for_each_attr(cur, data, rem) {
+		switch (blobmsg_type(cur)) {
+		case BLOBMSG_TYPE_STRING:
+			printf("%s=%s\n", blobmsg_name(cur), (char *) blobmsg_data(cur));
+			break;
+		case BLOBMSG_TYPE_INT32:
+			printf("%s=%d\n", blobmsg_name(cur), (int32_t) blobmsg_get_u32(cur));
+			break;
+		case BLOBMSG_TYPE_INT8:
+			printf("%s=%s\n", blobmsg_name(cur), blobmsg_get_u8(cur) ? "true" : "false");
+			break;
+		}
+	}
+}
+
 static bool __uqmi_run_commands(struct qmi_dev *qmi, bool option)
 {
 	static char buf[2048];
@@ -132,28 +151,32 @@ static bool __uqmi_run_commands(struct qmi_dev *qmi, bool option)
 	for (i = 0; i < n_cmds; i++) {
 		enum qmi_cmd_result res;
 		bool cmd_option = cmds[i].handler->type == CMD_TYPE_OPTION;
+		bool do_break = false;
 
 		if (cmd_option != option)
 			continue;
 
+		blob_buf_init(&status, 0);
 		if (cmds[i].handler->type > QMI_SERVICE_CTL &&
 		    qmi_service_connect(qmi, cmds[i].handler->type, -1)) {
-			fprintf(stderr, "Error in command '%s': failed to connect to service\n",
-			        cmds[i].handler->name);
-			return false;
+			blobmsg_printf(&status, "error", "failed to connect to service");
+			res = QMI_CMD_EXIT;
+		} else {
+			res = cmds[i].handler->prepare(qmi, &req, (void *) buf, cmds[i].arg);
 		}
-		res = cmds[i].handler->prepare(qmi, &req, (void *) buf, cmds[i].arg);
-		switch(res) {
-		case QMI_CMD_REQUEST:
+
+		if (res == QMI_CMD_REQUEST) {
 			qmi_request_start(qmi, &req, (void *) buf, cmds[i].handler->cb);
-			qmi_request_wait(qmi, &req);
-			break;
-		case QMI_CMD_EXIT:
-			return false;
-		case QMI_CMD_DONE:
-		default:
-			continue;
+			req.no_error_cb = true;
+			if (qmi_request_wait(qmi, &req))
+				blobmsg_add_string(&status, "error", qmi_get_error_str(req.ret));
+		} else if (res == QMI_CMD_EXIT) {
+			do_break = true;
 		}
+
+		uqmi_print_result(status.head);
+		if (do_break)
+			return false;
 	}
 	return true;
 }
