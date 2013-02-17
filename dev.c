@@ -58,7 +58,7 @@ static void __qmi_request_complete(struct qmi_dev *qmi, struct qmi_request *req,
 	if (req->ret)
 		msg = NULL;
 
-	if (req->cb)
+	if (req->cb && (msg || !req->no_error_cb))
 		req->cb(qmi, req, msg);
 
 	if (req->complete) {

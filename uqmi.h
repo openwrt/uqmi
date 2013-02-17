@@ -70,6 +70,7 @@ struct qmi_request {
 
 	bool *complete;
 	bool pending;
+	bool no_error_cb;
 	uint8_t service;
 	uint16_t tid;
 	int ret;
