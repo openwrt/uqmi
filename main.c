@@ -38,6 +38,8 @@ static int usage(const char *progname)
 		"  --set-client-id <name>,<id>:      Set Client ID for service <name> to <id>\n"
 		"  --get-client-id <name>:           Connect and get Client ID for service <name>\n"
 		"                                    (implies --keep-client-id)\n"
+		wds_helptext
+		dms_helptext
 		"\n", progname);
 	return 1;
 }
