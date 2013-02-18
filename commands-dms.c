@@ -71,3 +71,19 @@ cmd_dms_verify_pin2_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct
 	qmi_set_dms_uim_verify_pin_request(msg, &data);
 	return QMI_CMD_REQUEST;
 }
+
+static void cmd_dms_get_imsi_cb(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg)
+{
+	struct qmi_dms_uim_get_imsi_response res;
+
+	qmi_parse_dms_uim_get_imsi_response(msg, &res);
+	if (res.data.imsi)
+		blobmsg_add_string(&status, "number", res.data.imsi);
+}
+
+static enum qmi_cmd_result
+cmd_dms_get_imsi_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
+{
+	qmi_set_dms_uim_get_imsi_request(msg);
+	return QMI_CMD_REQUEST;
+}
