@@ -42,6 +42,7 @@ static int usage(const char *progname)
 		wds_helptext
 		dms_helptext
 		nas_helptext
+		wms_helptext
 		"\n", progname);
 	return 1;
 }
