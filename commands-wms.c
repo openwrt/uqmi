@@ -28,7 +28,31 @@ cmd_wms_list_messages_prepare(struct qmi_dev *qmi, struct qmi_request *req, stru
 	return QMI_CMD_REQUEST;
 }
 
-static void decode_7bit(char *name, const unsigned char *data, int data_len)
+static int
+pdu_decode_7bit_str(char *dest, const unsigned char *data, int data_len, int bit_offset)
+{
+	char *orig_dest = dest;
+	int i;
+
+	for (i = 0; i < data_len; i++) {
+		int pos = (i + bit_offset) % 7;
+
+		if (pos == 0) {
+			*(dest++) = data[i] & 0x7f;
+		} else {
+			if (i)
+				*(dest++) = (data[i - 1] >> (7 + 1 - pos)) |
+				            ((data[i] << pos) & 0x7f);
+
+			if (pos == 6)
+				*(dest++) = (data[i] >> 1) & 0x7f;
+		}
+	}
+	*dest = 0;
+	return dest - orig_dest;
+}
+
+static void decode_7bit_field(char *name, const unsigned char *data, int data_len)
 {
 	bool multipart = false;
 	char *dest;
@@ -54,21 +78,7 @@ static void decode_7bit(char *name, const unsigned char *data, int data_len)
 	}
 
 	dest = blobmsg_alloc_string_buffer(&status, name, data_len * 8 / 7 + 2);
-	for (i = 0; i < data_len; i++) {
-		int pos = (i + pos_offset) % 7;
-
-		if (pos == 0) {
-			*(dest++) = data[i] & 0x7f;
-		} else {
-			if (i)
-				*(dest++) = (data[i - 1] >> (7 + 1 - pos)) |
-				            ((data[i] << pos) & 0x7f);
-
-			if (pos == 6)
-				*(dest++) = (data[i] >> 1) & 0x7f;
-		}
-	}
-	*dest = 0;
+	pdu_decode_7bit_str(dest, data, data_len, pos_offset);
 	blobmsg_add_string_buffer(&status);
 
 	if (multipart) {
@@ -77,7 +87,7 @@ static void decode_7bit(char *name, const unsigned char *data, int data_len)
 	}
 }
 
-static char *add_semioctet(char *str, char val)
+static char *pdu_add_semioctet(char *str, char val)
 {
 	*str = '0' + (val & 0xf);
 	if (*str <= '9')
@@ -90,25 +100,34 @@ static char *add_semioctet(char *str, char val)
 	return str;
 }
 
-static unsigned char *
-decode_semioctet_number(char *str, char *name, unsigned char *data, int len)
+static void
+pdu_decode_address(char *str, unsigned char *data, int len)
 {
-	str = blobmsg_alloc_string_buffer(&status, name, len * 2 + 2);
-	if (*data == 0x91) {
-		len--;
+	unsigned char toa;
+
+	toa = *(data++);
+	switch (toa & 0x70) {
+	case 0x50:
+		pdu_decode_7bit_str(str, data, len, 0);
+		return;
+	case 0x10:
 		*(str++) = '+';
-	}
-	data++;
-	while (len) {
-		str = add_semioctet(str, *data);
-		data++;
-		len--;
+		/* fall through */
+	default:
+		while (len--) {
+			str = pdu_add_semioctet(str, *data);
+			data++;
+		}
 	}
 
 	*str = 0;
-	blobmsg_add_string_buffer(&status);
+}
 
-	return data;
+static void wms_decode_address(char *str, char *name, unsigned char *data, int len)
+{
+	str = blobmsg_alloc_string_buffer(&status, name, len * 2 + 2);
+	pdu_decode_address(str, data, len);
+	blobmsg_add_string_buffer(&status);
 }
 
 static void cmd_wms_get_message_cb(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg)
@@ -123,79 +142,82 @@ static void cmd_wms_get_message_cb(struct qmi_dev *qmi, struct qmi_request *req,
 	data = (unsigned char *) res.data.raw_message_data.raw_data;
 	end = data + res.data.raw_message_data.raw_data_n;
 
-	do {
-		cur_len = *(data++);
-		if (data + cur_len >= end)
-			break;
+	cur_len = *(data++);
+	if (data + cur_len >= end)
+		return;
 
-		if (cur_len)
-			data = decode_semioctet_number(str, "smsc", data, cur_len);
+	if (cur_len) {
+		wms_decode_address(str, "smsc", data, cur_len - 1);
+		data += cur_len;
+	}
 
-		if (data + 3 >= end)
-			break;
+	if (data + 3 >= end)
+		return;
 
-		sent = (*data & 0x3) == 1;
+	sent = (*data & 0x3) == 1;
+	data++;
+	if (sent)
 		data++;
-		if (sent)
-			data++;
 
-		cur_len = *(data++);
-		if (data + cur_len >= end)
-			break;
+	cur_len = *(data++);
+	if (data + cur_len >= end)
+		return;
 
-		if (cur_len)
-			data = decode_semioctet_number(str, sent ? "receiver" : "sender", data, (cur_len + 1) / 2);
+	if (cur_len) {
+		cur_len = (cur_len + 1) / 2;
+		wms_decode_address(str, sent ? "receiver" : "sender", data, cur_len);
+		data += cur_len + 1;
+	}
 
-		if (data + 3 >= end)
-			break;
+	if (data + 3 >= end)
+		return;
 
-		/* Protocol ID */
-		if (*(data++) != 0)
-			break;
+	/* Protocol ID */
+	if (*(data++) != 0)
+		return;
 
-		/* Data Encoding */
-		if (*(data++) != 0)
-			break;
+	/* Data Encoding */
+	if (*(data++) != 0)
+		return;
 
-		if (sent) {
-			/* Message validity */
-			data++;
-		} else {
-			if (data + 6 >= end)
-				break;
+	if (sent) {
+		/* Message validity */
+		data++;
+	} else {
+		if (data + 6 >= end)
+			return;
 
-			str = blobmsg_alloc_string_buffer(&status, "timestamp", 32);
+		str = blobmsg_alloc_string_buffer(&status, "timestamp", 32);
 
-			/* year */
-			*(str++) = '2';
-			*(str++) = '0';
-			str = add_semioctet(str, data[0]);
-			/* month */
-			*(str++) = '-';
-			str = add_semioctet(str, data[1]);
-			/* day */
-			*(str++) = '-';
-			str = add_semioctet(str, data[2]);
+		/* year */
+		*(str++) = '2';
+		*(str++) = '0';
+		str = pdu_add_semioctet(str, data[0]);
+		/* month */
+		*(str++) = '-';
+		str = pdu_add_semioctet(str, data[1]);
+		/* day */
+		*(str++) = '-';
+		str = pdu_add_semioctet(str, data[2]);
 
-			/* hour */
-			*(str++) = ' ';
-			str = add_semioctet(str, data[3]);
-			/* minute */
-			*(str++) = ':';
-			str = add_semioctet(str, data[4]);
-			/* second */
-			*(str++) = ':';
-			str = add_semioctet(str, data[5]);
-			*str = 0;
+		/* hour */
+		*(str++) = ' ';
+		str = pdu_add_semioctet(str, data[3]);
+		/* minute */
+		*(str++) = ':';
+		str = pdu_add_semioctet(str, data[4]);
+		/* second */
+		*(str++) = ':';
+		str = pdu_add_semioctet(str, data[5]);
+		*str = 0;
 
-			blobmsg_add_string_buffer(&status);
+		blobmsg_add_string_buffer(&status);
 
-			data += 7;
-		}
+		data += 7;
+	}
 
-		cur_len = *(data++);
-		decode_7bit("text", data, end - data);
-	} while (0);
+	cur_len = *(data++);
+	decode_7bit_field("text", data, end - data);
 }
 
 static enum qmi_cmd_result
