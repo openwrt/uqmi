@@ -52,39 +52,58 @@ pdu_decode_7bit_str(char *dest, const unsigned char *data, int data_len, int bit
 	return dest - orig_dest;
 }
 
-static void decode_7bit_field(char *name, const unsigned char *data, int data_len)
+static void decode_udh(const unsigned char *data)
+{
+	const unsigned char *start = data;
+	const unsigned char *end;
+	unsigned int type, len;
+
+	len = *(data++);
+	end = data + len;
+	while (data < end) {
+		const unsigned char *val;
+
+		type = data[0];
+		len = data[1];
+		val = &data[2];
+		data += 2 + len;
+		if (data > end)
+			break;
+
+		switch (type) {
+		case 0:
+			blobmsg_add_u32(&status, "concat_ref", (uint32_t) val[0]);
+			blobmsg_add_u32(&status, "concat_part", (uint32_t) val[2] + 1);
+			blobmsg_add_u32(&status, "concat_parts", (uint32_t) val[1]);
+			break;
+		default:
+			break;
+		}
+	}
+}
+
+static void decode_7bit_field(char *name, const unsigned char *data, int data_len, bool udh)
 {
 	bool multipart = false;
+	const unsigned char *udh_start;
 	char *dest;
-	int part = 0, n_parts = 0;
-	int len, pos_offset = 0;
-	int i;
+	int pos_offset = 0;
 
-	if (data[0] == 5 && data[1] == 0 && data[2] == 3) {
-		multipart = true;
-		n_parts = data[4];
-		part = data[5];
-	} else if (data[0] == 6 && data[1] == 8 && data[2] == 4) {
-		multipart = true;
-		n_parts = data[5];
-		part = data[6];
-	}
+	if (udh) {
+		int len = data[0] + 1;
 
-	if (multipart) {
-		len = data[0] + 1;
+		udh_start = data;
 		data += len;
 		data_len -= len;
-		pos_offset = 6;
+		pos_offset = len % 7;
 	}
 
 	dest = blobmsg_alloc_string_buffer(&status, name, data_len * 8 / 7 + 2);
 	pdu_decode_7bit_str(dest, data, data_len, pos_offset);
 	blobmsg_add_string_buffer(&status);
 
-	if (multipart) {
-		blobmsg_add_u32(&status, "part", part + 1);
-		blobmsg_add_u32(&status, "parts", n_parts);
-	}
+	if (udh)
+		decode_udh(udh_start);
 }
 
 static char *pdu_add_semioctet(char *str, char val)
@@ -137,6 +156,7 @@ static void cmd_wms_get_message_cb(struct qmi_dev *qmi, struct qmi_request *req,
 	char *str;
 	int i, cur_len;
 	bool sent;
+	unsigned char first;
 
 	qmi_parse_wms_raw_read_response(msg, &res);
 	data = (unsigned char *) res.data.raw_message_data.raw_data;
@@ -154,8 +174,8 @@ static void cmd_wms_get_message_cb(struct qmi_dev *qmi, struct qmi_request *req,
 	if (data + 3 >= end)
 		return;
 
-	sent = (*data & 0x3) == 1;
-	data++;
+	first = *(data++);
+	sent = (first & 0x3) == 1;
 	if (sent)
 		data++;
 
@@ -217,7 +237,7 @@ static void cmd_wms_get_message_cb(struct qmi_dev *qmi, struct qmi_request *req,
 	}
 
 	cur_len = *(data++);
-	decode_7bit_field("text", data, end - data);
+	decode_7bit_field("text", data, end - data, !!(first & 0x40));
 }
 
 static enum qmi_cmd_result
