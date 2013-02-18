@@ -156,7 +156,7 @@ static void cmd_wms_get_message_cb(struct qmi_dev *qmi, struct qmi_request *req,
 	char *str;
 	int i, cur_len;
 	bool sent;
-	unsigned char first;
+	unsigned char first, dcs;
 
 	qmi_parse_wms_raw_read_response(msg, &res);
 	data = (unsigned char *) res.data.raw_message_data.raw_data;
@@ -197,8 +197,14 @@ static void cmd_wms_get_message_cb(struct qmi_dev *qmi, struct qmi_request *req,
 		return;
 
 	/* Data Encoding */
-	if (*(data++) != 0)
+	dcs = *(data++);
+
+	/* only 7-bit encoding supported for now */
+	if (dcs & 0x0c)
 		return;
+
+	if (dcs & 0x10)
+		blobmsg_add_u32(&status, "class", (dcs & 3));
 
 	if (sent) {
 		/* Message validity */
