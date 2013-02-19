@@ -29,27 +29,134 @@ cmd_wms_list_messages_prepare(struct qmi_dev *qmi, struct qmi_request *req, stru
 }
 
 static int
+put_unicode_char(char *dest, uint16_t c)
+{
+	if (c < 0x80) {
+		*dest = c;
+		return 1;
+	} else if (c < 0x800) {
+		*(dest++) = 0xc0 | ((c >> 6) & 0x1f);
+		*dest = 0x80 | (c & 0x3f);
+		return 2;
+	} else {
+		*(dest++) = 0xe0 | ((c >> 12) & 0xf);
+		*(dest++) = 0x80 | ((c >> 6) & 0x3f);
+		*dest = 0x80 | (c & 0x3f);
+		return 3;
+	}
+}
+
+
+static int
+pdu_decode_7bit_char(char *dest, int len, char c, bool *escape)
+{
+	uint16_t conv_0x20[] = {
+		0x0040, 0x00A3, 0x0024, 0x00A5, 0x00E8, 0x00E9, 0x00F9, 0x00EC,
+		0x00F2, 0x00E7, 0x000A, 0x00D8, 0x00F8, 0x000D, 0x00C5, 0x00E5,
+		0x0394, 0x005F, 0x03A6, 0x0393, 0x039B, 0x03A9, 0x03A0, 0x03A8,
+		0x03A3, 0x0398, 0x039E, 0x00A0, 0x00C6, 0x00E6, 0x00DF, 0x00C9,
+	};
+	uint16_t conv_0x5b[] = {
+		0x00C4, 0x00D6, 0x00D1, 0x00DC, 0x00A7, 0x00BF,
+	};
+	uint16_t conv_0x7b[] = {
+		0x00E4, 0x00F6, 0x00F1, 0x00FC, 0x00E0
+	};
+	int cur_len = 0;
+	uint16_t outc;
+
+	fprintf(stderr, " %02x", c);
+	dest += len;
+	if (*escape) {
+		switch(c) {
+		case 0x0A:
+			*dest = 0x0C;
+			return 1;
+		case 0x14:
+			*dest = 0x5E;
+			return 1;
+		case 0x28:
+			*dest = 0x7B;
+			return 1;
+		case 0x29:
+			*dest = 0x7D;
+			return 1;
+		case 0x2F:
+			*dest = 0x5C;
+			return 1;
+		case 0x3C:
+			*dest = 0x5B;
+			return 1;
+		case 0x3D:
+			*dest = 0x7E;
+			return 1;
+		case 0x3E:
+			*dest = 0x5D;
+			return 1;
+		case 0x40:
+			*dest = 0x7C;
+			return 1;
+		case 0x65:
+			outc = 0x20AC;
+			goto out;
+		case 0x1B:
+			goto normal;
+		default:
+			/* invalid */
+			*(dest++) = conv_0x20[0x1B];
+			cur_len++;
+			goto normal;
+		}
+	}
+
+	if (c == 0x1b) {
+		*escape = true;
+		return 0;
+	}
+
+normal:
+	if (c < 0x20)
+		outc = conv_0x20[(int) c];
+	else if (c == 0x40)
+		outc = 0x00A1;
+	else if (c >= 0x5b && c <= 0x60)
+		outc = conv_0x5b[c - 0x5b];
+	else if (c >= 0x7b && c <= 0x7f)
+		outc = conv_0x7b[c - 0x7b];
+	else
+		outc = c;
+
+out:
+	return cur_len + put_unicode_char(dest, outc);
+}
+
+static int
 pdu_decode_7bit_str(char *dest, const unsigned char *data, int data_len, int bit_offset)
 {
-	char *orig_dest = dest;
+	bool escape = false;
+	int len = 0;
 	int i;
 
+	fprintf(stderr, "Raw text:");
 	for (i = 0; i < data_len; i++) {
 		int pos = (i + bit_offset) % 7;
 
 		if (pos == 0) {
-			*(dest++) = data[i] & 0x7f;
+			len += pdu_decode_7bit_char(dest, len, data[i] & 0x7f, &escape);
 		} else {
 			if (i)
-				*(dest++) = (data[i - 1] >> (7 + 1 - pos)) |
-				            ((data[i] << pos) & 0x7f);
+				len += pdu_decode_7bit_char(dest, len,
+				                            (data[i - 1] >> (7 + 1 - pos)) |
+				                            ((data[i] << pos) & 0x7f), &escape);
 
 			if (pos == 6)
-				*(dest++) = (data[i] >> 1) & 0x7f;
+				len += pdu_decode_7bit_char(dest, len, (data[i] >> 1) & 0x7f,
+				                            &escape);
 		}
 	}
-	*dest = 0;
-	return dest - orig_dest;
+	dest[len] = 0;
+	fprintf(stderr, "\n");
+	return len;
 }
 
 static void decode_udh(const unsigned char *data)
@@ -96,7 +203,7 @@ static void decode_7bit_field(char *name, const unsigned char *data, int data_le
 		pos_offset = len % 7;
 	}
 
-	dest = blobmsg_alloc_string_buffer(&status, name, data_len * 8 / 7 + 2);
+	dest = blobmsg_alloc_string_buffer(&status, name, 3 * (data_len * 8 / 7) + 2);
 	pdu_decode_7bit_str(dest, data, data_len, pos_offset);
 	blobmsg_add_string_buffer(&status);
 
