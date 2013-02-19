@@ -469,7 +469,7 @@ pdu_encode_7bit_str(unsigned char *data, const char *str)
 			break;
 		}
 
-		ofs = (ofs + 1) % 7;
+		ofs = (ofs + 1) % 8;
 	}
 
 	return len + 1;
