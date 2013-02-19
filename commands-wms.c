@@ -288,3 +288,187 @@ static void cmd_wms_get_raw_message_cb(struct qmi_dev *qmi, struct qmi_request *
 }
 
 #define cmd_wms_get_raw_message_prepare cmd_wms_get_message_prepare
+
+
+static struct {
+	const char *smsc;
+	const char *target;
+	bool flash;
+} send;
+
+
+#define cmd_wms_send_message_smsc_cb no_cb
+static enum qmi_cmd_result
+cmd_wms_send_message_smsc_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
+{
+	send.smsc = arg;
+	return QMI_CMD_DONE;
+}
+
+#define cmd_wms_send_message_target_cb no_cb
+static enum qmi_cmd_result
+cmd_wms_send_message_target_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
+{
+	send.target = arg;
+	return QMI_CMD_DONE;
+}
+
+#define cmd_wms_send_message_flash_cb no_cb
+static enum qmi_cmd_result
+cmd_wms_send_message_flash_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
+{
+	send.flash = true;
+	return QMI_CMD_DONE;
+}
+
+static int
+pdu_encode_semioctet(unsigned char *dest, const char *str)
+{
+	int len = 0;
+	bool lower = true;
+
+	while (*str) {
+		char digit = *str - '0';
+
+		if (lower)
+			dest[len] = 0xf0 | digit;
+		else
+			dest[len++] &= (digit << 4) | 0xf;
+
+		lower = !lower;
+		str++;
+	}
+
+	return len;
+}
+
+static int
+pdu_encode_7bit_str(unsigned char *data, const char *str)
+{
+	unsigned char c;
+	int len = 0;
+	int ofs = 0;
+
+	while(1) {
+		unsigned char mask;
+
+		c = *(str++) & 0x7f;
+		if (!c)
+			break;
+
+		switch(ofs) {
+		case 0:
+			data[len] = c;
+			break;
+		default:
+			data[len++] |= c << (8 - ofs);
+			data[len] = c >> ofs;
+			break;
+		}
+
+		ofs = (ofs + 1) % 7;
+	}
+
+	return len + 1;
+}
+
+static int
+pdu_encode_number(unsigned char *dest, const char *str, bool smsc)
+{
+	unsigned char format;
+	bool ascii = false;
+	int len = 0;
+	int i;
+
+	dest[len++] = 0;
+	if (*str == '+') {
+		str++;
+		format = 0x91;
+	} else {
+		format = 0x81;
+	}
+
+	for (i = 0; str[i]; i++) {
+		if (str[i] >= '0' || str[i] <= '9')
+			continue;
+
+		ascii = true;
+		break;
+	}
+
+	if (ascii)
+		format |= 0x40;
+
+	dest[len++] = format;
+	if (!ascii)
+		len += pdu_encode_semioctet(&dest[len], str);
+	else
+		len += pdu_encode_7bit_str(&dest[len], str);
+
+	if (smsc)
+		dest[0] = len - 1;
+	else
+		dest[0] = strlen(str);
+
+	return len;
+}
+
+static int
+pdu_encode_data(unsigned char *dest, const char *str)
+{
+	int len = 0;
+
+	dest[len++] = 0;
+	len += pdu_encode_7bit_str(&dest[len], str);
+	dest[0] = len - 1;
+
+	return len;
+}
+
+#define cmd_wms_send_message_cb no_cb
+static enum qmi_cmd_result
+cmd_wms_send_message_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
+{
+	static unsigned char buf[512];
+	static struct qmi_wms_raw_send_request mreq = {
+		QMI_INIT_SEQUENCE(raw_message_data,
+			.format = QMI_WMS_MESSAGE_FORMAT_GSM_WCDMA_POINT_TO_POINT,
+			.raw_data = buf,
+		),
+	};
+	unsigned char *cur = buf;
+	unsigned char first_octet = 0x11;
+	unsigned char protocol_id = 0x00;
+	unsigned char dcs = 0x00;
+	char *str;
+	int i;
+
+	if (!send.smsc || !*send.smsc || !send.target || !*send.target) {
+		blobmsg_add_string(&status, "error", "Missing argument");
+		return QMI_CMD_EXIT;
+	}
+
+	if (strlen(send.smsc) > 16 || strlen(send.target) > 16 || strlen(arg) > 160) {
+		blobmsg_add_string(&status, "error", "Argument too long");
+		return QMI_CMD_EXIT;
+	}
+
+	if (send.flash)
+		dcs |= 0x10;
+
+	cur += pdu_encode_number(cur, send.smsc, true);
+	*(cur++) = first_octet;
+	*(cur++) = 0; /* reference */
+
+	cur += pdu_encode_number(cur, send.target, false);
+	*(cur++) = protocol_id;
+	*(cur++) = dcs;
+
+	*(cur++) = 0xff; /* validity */
+	cur += pdu_encode_data(cur, arg);
+
+	mreq.data.raw_message_data.raw_data_n = cur - buf;
+	qmi_set_wms_raw_send_request(msg, &mreq);
+
+	return QMI_CMD_REQUEST;
+}
