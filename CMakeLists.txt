@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.6)
 
 PROJECT(uqmi C)
-ADD_DEFINITIONS(-Os -ggdb -Wall -Werror --std=gnu99 -Wmissing-declarations -Wno-unused)
+ADD_DEFINITIONS(-Os -ggdb -Wall -Werror --std=gnu99 -Wmissing-declarations)
 
 SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
 
@@ -33,6 +33,7 @@ FOREACH(service ctl dms nas pds wds wms)
 		DEPENDS ./data/gen-code.pl ./data/qmi-service-${service}.json ./data/gen-common.pm
 	)
 	SET(service_sources ${service_sources} qmi-message-${service}.c)
+	set_property(SOURCE qmi-message-${service}.c PROPERTY COMPILE_FLAGS "-Wno-unused")
 ENDFOREACH()
 
 ADD_CUSTOM_COMMAND(

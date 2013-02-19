@@ -49,7 +49,6 @@ static void __qmi_request_complete(struct qmi_dev *qmi, struct qmi_request *req,
 {
 	void *tlv_buf;
 	int tlv_len;
-	int ret;
 
 	if (!req->pending)
 		return;
@@ -103,7 +102,6 @@ static void qmi_notify_read(struct ustream *us, int bytes)
 	struct qmi_msg *msg;
 	char *buf;
 	int len, msg_len;
-	int i;
 
 	while (1) {
 		buf = ustream_get_read_buf(us, &len);
@@ -128,8 +126,6 @@ int qmi_request_start(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_m
 {
 	int len = qmi_complete_request_message(msg);
 	uint16_t tid;
-	int ret;
-	int i;
 
 	memset(req, 0, sizeof(*req));
 	req->ret = -1;
@@ -314,7 +310,6 @@ int qmi_device_open(struct qmi_dev *qmi, const char *path)
 void qmi_device_close(struct qmi_dev *qmi)
 {
 	struct qmi_request *req;
-	int idx;
 
 	qmi_close_all_services(qmi);
 	ustream_free(&qmi->sf.stream);

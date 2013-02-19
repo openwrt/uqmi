@@ -54,7 +54,6 @@ pdu_decode_7bit_str(char *dest, const unsigned char *data, int data_len, int bit
 
 static void decode_udh(const unsigned char *data)
 {
-	const unsigned char *start = data;
 	const unsigned char *end;
 	unsigned int type, len;
 
@@ -84,7 +83,6 @@ static void decode_udh(const unsigned char *data)
 
 static void decode_7bit_field(char *name, const unsigned char *data, int data_len, bool udh)
 {
-	bool multipart = false;
 	const unsigned char *udh_start;
 	char *dest;
 	int pos_offset = 0;
@@ -154,7 +152,7 @@ static void cmd_wms_get_message_cb(struct qmi_dev *qmi, struct qmi_request *req,
 	struct qmi_wms_raw_read_response res;
 	unsigned char *data, *end;
 	char *str;
-	int i, cur_len;
+	int cur_len;
 	bool sent;
 	unsigned char first, dcs;
 
@@ -275,8 +273,8 @@ static void cmd_wms_get_raw_message_cb(struct qmi_dev *qmi, struct qmi_request *
 {
 	struct qmi_wms_raw_read_response res;
 	unsigned char *data;
-	int i, len = 0;
 	char *str;
+	int i;
 
 	qmi_parse_wms_raw_read_response(msg, &res);
 	data = (unsigned char *) res.data.raw_message_data.raw_data;
@@ -350,8 +348,6 @@ pdu_encode_7bit_str(unsigned char *data, const char *str)
 	int ofs = 0;
 
 	while(1) {
-		unsigned char mask;
-
 		c = *(str++) & 0x7f;
 		if (!c)
 			break;
@@ -440,8 +436,6 @@ cmd_wms_send_message_prepare(struct qmi_dev *qmi, struct qmi_request *req, struc
 	unsigned char first_octet = 0x11;
 	unsigned char protocol_id = 0x00;
 	unsigned char dcs = 0x00;
-	char *str;
-	int i;
 
 	if (!send.smsc || !*send.smsc || !send.target || !*send.target) {
 		blobmsg_add_string(&status, "error", "Missing argument");
