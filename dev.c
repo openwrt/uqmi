@@ -261,6 +261,13 @@ static void __qmi_service_disconnect(struct qmi_dev *qmi, int idx)
 	qmi_request_wait(qmi, &req);
 }
 
+int qmi_service_release_client_id(struct qmi_dev *qmi, QmiService svc)
+{
+	int idx = qmi_get_service_idx(svc);
+	qmi->service_keep_cid &= ~(1 << idx);
+	return 0;
+}
+
 static void qmi_close_all_services(struct qmi_dev *qmi)
 {
 	uint32_t connected = qmi->service_connected;

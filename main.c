@@ -19,7 +19,8 @@ static const char *device;
 static const struct option uqmi_getopt[] = {
 	__uqmi_commands,
 	{ "device", required_argument, NULL, 'd' },
-	{ "keep-client-id", required_argument, NULL, 'K' },
+	{ "keep-client-id", required_argument, NULL, 'k' },
+	{ "release-client-id", required_argument, NULL, 'r' },
 	{ NULL, 0, NULL, 0 }
 };
 #undef __uqmi_command
@@ -31,6 +32,7 @@ static int usage(const char *progname)
 		"  --device=NAME, -d NAME:           Set device name to NAME (required)\n"
 		"  --keep-client-id <name>:          Keep Client ID for service <name>\n"
 		"                                    (implies --keep-client-id)\n"
+		"  --release-client-id <name>:       Release Client ID after exiting\n"
 		"\n"
 		"Services:                           dms, nas, pds, wds, wms\n"
 		"\n"
@@ -57,6 +59,16 @@ static void keep_client_id(struct qmi_dev *qmi, const char *optarg)
 	qmi_service_get_client_id(qmi, svc);
 }
 
+static void release_client_id(struct qmi_dev *qmi, const char *optarg)
+{
+	QmiService svc = qmi_service_get_by_name(optarg);
+	if (svc < 0) {
+		fprintf(stderr, "Invalid service %s\n", optarg);
+		exit(1);
+	}
+	qmi_service_release_client_id(qmi, svc);
+}
+
 static void handle_exit_signal(int signal)
 {
 	cancel_all_requests = true;
@@ -81,6 +93,9 @@ int main(int argc, char **argv)
 		}
 
 		switch(ch) {
+		case 'r':
+			release_client_id(&dev, optarg);
+			break;
 		case 'k':
 			keep_client_id(&dev, optarg);
 			break;
