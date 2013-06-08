@@ -7,7 +7,8 @@ SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
 
 SET(SOURCES main.c dev.c commands.c qmi-message.c)
 
-SET(LIBS ubox)
+FIND_LIBRARY(json json-c json)
+SET(LIBS ubox blobmsg_json ${json})
 
 IF(DEBUG_PACKET)
   ADD_DEFINITIONS(-DDEBUG_PACKET)
