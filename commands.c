@@ -11,6 +11,7 @@
 #include "commands.h"
 
 static struct blob_buf status;
+bool single_line = false;
 
 static void no_cb(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg)
 {
@@ -131,7 +132,7 @@ static void uqmi_print_result(struct blob_attr *data)
 	if (!blob_len(data))
 		return;
 
-	str = blobmsg_format_json_indent(blob_data(data), false, 0);
+	str = blobmsg_format_json_indent(blob_data(data), false, single_line ? -1 : 0);
 	if (!str)
 		return;
 
