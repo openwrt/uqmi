@@ -35,7 +35,7 @@ cmd_nas_set_network_modes_prepare(struct qmi_dev *qmi, struct qmi_request *req, 
 		}
 
 		if (!found) {
-			blobmsg_add_string(&status, "error", "Invalid network mode");
+			uqmi_add_error("Invalid network mode");
 			return QMI_CMD_EXIT;
 		}
 	}
@@ -74,9 +74,11 @@ static void
 cmd_nas_get_signal_info_cb(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg)
 {
 	struct qmi_nas_get_signal_info_response res;
+	void *c;
 
 	qmi_parse_nas_get_signal_info_response(msg, &res);
 
+	c = blobmsg_open_table(&status, NULL);
 	if (res.set.cdma_signal_strength) {
 		blobmsg_add_string(&status, "type", "cdma");
 		blobmsg_add_u32(&status, "rssi", (int32_t) res.data.cdma_signal_strength.rssi);
@@ -108,6 +110,8 @@ cmd_nas_get_signal_info_cb(struct qmi_dev *qmi, struct qmi_request *req, struct 
 		blobmsg_add_u32(&status, "rsrp", (int32_t) res.data.lte_signal_strength.rsrp);
 		blobmsg_add_u32(&status, "snr", (int32_t) res.data.lte_signal_strength.snr);
 	}
+
+	blobmsg_close_table(&status, c);
 }
 
 static enum qmi_cmd_result
@@ -128,9 +132,11 @@ cmd_nas_get_serving_system_cb(struct qmi_dev *qmi, struct qmi_request *req, stru
 		[QMI_NAS_REGISTRATION_STATE_REGISTRATION_DENIED] = "registering_denied",
 		[QMI_NAS_REGISTRATION_STATE_UNKNOWN] = "unknown",
 	};
+	void *c;
 
 	qmi_parse_nas_get_serving_system_response(msg, &res);
 
+	c = blobmsg_open_table(&status, NULL);
 	if (res.set.serving_system) {
 		int state = res.data.serving_system.registration_state;
 
@@ -148,6 +154,8 @@ cmd_nas_get_serving_system_cb(struct qmi_dev *qmi, struct qmi_request *req, stru
 
 	if (res.set.roaming_indicator)
 		blobmsg_add_u8(&status, "roaming", !res.data.roaming_indicator);
+
+	blobmsg_close_table(&status, c);
 }
 
 static enum qmi_cmd_result

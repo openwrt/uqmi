@@ -28,7 +28,7 @@ cmd_wds_set_auth_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qm
 		return QMI_CMD_DONE;
 	}
 
-	blobmsg_add_string(&status, "error", "Invalid auth mode (valid: pap, chap, both, none)");
+	uqmi_add_error("Invalid auth mode (valid: pap, chap, both, none)");
 	return QMI_CMD_EXIT;
 }
 
@@ -55,7 +55,7 @@ cmd_wds_start_network_cb(struct qmi_dev *qmi, struct qmi_request *req, struct qm
 
 	qmi_parse_wds_start_network_response(msg, &res);
 	if (res.set.packet_data_handle)
-		blobmsg_add_u32(&status, "handle", res.data.packet_data_handle);
+		blobmsg_add_u32(&status, NULL, res.data.packet_data_handle);
 }
 
 static enum qmi_cmd_result

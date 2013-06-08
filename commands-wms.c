@@ -3,16 +3,15 @@
 static void cmd_wms_list_messages_cb(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg)
 {
 	struct qmi_wms_list_messages_response res;
-	int i, len = 0;
+	void *c;
+	int i;
 
 	qmi_parse_wms_list_messages_response(msg, &res);
-	blobmsg_alloc_string_buffer(&status, "messages", 1);
-	for (i = 0; i < res.data.message_list_n; i++) {
-		len += sprintf(blobmsg_realloc_string_buffer(&status, len + 12) + len,
-		               " %d" + (len ? 0 : 1),
-					   res.data.message_list[i].memory_index);
-	}
-	blobmsg_add_string_buffer(&status);
+	c = blobmsg_open_array(&status, NULL);
+	for (i = 0; i < res.data.message_list_n; i++)
+		blobmsg_add_u32(&status, NULL, res.data.message_list[i].memory_index);
+
+	blobmsg_close_array(&status, c);
 }
 
 static enum qmi_cmd_result
@@ -262,8 +261,10 @@ static void cmd_wms_get_message_cb(struct qmi_dev *qmi, struct qmi_request *req,
 	int cur_len;
 	bool sent;
 	unsigned char first, dcs;
+	void *c;
 
 	qmi_parse_wms_raw_read_response(msg, &res);
+	c = blobmsg_open_table(&status, NULL);
 	data = (unsigned char *) res.data.raw_message_data.raw_data;
 	end = data + res.data.raw_message_data.raw_data_n;
 
@@ -349,6 +350,7 @@ static void cmd_wms_get_message_cb(struct qmi_dev *qmi, struct qmi_request *req,
 
 	cur_len = *(data++);
 	decode_7bit_field("text", data, end - data, !!(first & 0x40));
+	blobmsg_close_table(&status, c);
 }
 
 static enum qmi_cmd_result
@@ -365,7 +367,7 @@ cmd_wms_get_message_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct
 
 	id = strtoul(arg, &err, 10);
 	if (err && *err) {
-		blobmsg_add_string(&status, "error", "Invalid message ID");
+		uqmi_add_error("Invalid message ID");
 		return QMI_CMD_EXIT;
 	}
 
@@ -385,7 +387,7 @@ static void cmd_wms_get_raw_message_cb(struct qmi_dev *qmi, struct qmi_request *
 
 	qmi_parse_wms_raw_read_response(msg, &res);
 	data = (unsigned char *) res.data.raw_message_data.raw_data;
-	str = blobmsg_alloc_string_buffer(&status, "data", res.data.raw_message_data.raw_data_n * 3);
+	str = blobmsg_alloc_string_buffer(&status, NULL, res.data.raw_message_data.raw_data_n * 3);
 	for (i = 0; i < res.data.raw_message_data.raw_data_n; i++) {
 		str += sprintf(str, " %02x" + (i ? 0 : 1), data[i]);
 	}
@@ -545,12 +547,12 @@ cmd_wms_send_message_prepare(struct qmi_dev *qmi, struct qmi_request *req, struc
 	unsigned char dcs = 0x00;
 
 	if (!send.smsc || !*send.smsc || !send.target || !*send.target) {
-		blobmsg_add_string(&status, "error", "Missing argument");
+		uqmi_add_error("Missing argument");
 		return QMI_CMD_EXIT;
 	}
 
 	if (strlen(send.smsc) > 16 || strlen(send.target) > 16 || strlen(arg) > 160) {
-		blobmsg_add_string(&status, "error", "Argument too long");
+		uqmi_add_error("Argument too long");
 		return QMI_CMD_EXIT;
 	}
 
