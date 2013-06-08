@@ -79,7 +79,7 @@ sub gen_tlv_parse_field($$$$) {
 
 			$var_data .= $indent."\t$var\_n++;\n";
 			$data .= $indent."$iterator = $size;\n";
-			$data .= $indent."$var = __qmi_alloc_static($iterator);\n";
+			$data .= $indent."$var = __qmi_alloc_static($iterator * sizeof($var\[0]));\n";
 			$data .= $indent."while($iterator\-- > 0) {\n";
 		}
 
