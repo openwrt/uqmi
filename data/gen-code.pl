@@ -132,9 +132,12 @@ sub gen_tlv_parse_field($$$$) {
 	}
 }
 
-sub gen_tlv_type($$) {
+sub gen_tlv_type($$$) {
 	my $cname = shift;
 	my $elem = shift;
+	my $idx = shift;
+	my $idx_word = "found[".int($idx / 32)."]";
+	my $idx_bit = "(1 << ".($idx % 32).")";
 
 	my $type = $elem->{"format"};
 	my $id = $elem->{"id"};
@@ -146,6 +149,10 @@ sub gen_tlv_type($$) {
 
 	print <<EOF;
 		case $id:
+			if ($idx_word & $idx_bit)
+				break;
+
+			$idx_word |= $idx_bit;
 EOF
 
 	my $val = $tlv_get{$type};
@@ -188,9 +195,14 @@ sub gen_parse_func($$)
 EOF
 
 	if (gen_has_types($data)) {
+		my $n_bits = scalar @$data;
+		my $n_words = int(($n_bits + 31) / 32);
+		my $i = 0;
+
 		print <<EOF;
 	struct tlv *tlv;
 	int i;
+	uint32_t found[$n_words] = {};
 
 	memset(res, 0, sizeof(*res));
 
@@ -203,7 +215,7 @@ EOF
 EOF
 		foreach my $field (@$data) {
 			my $cname = gen_cname($field->{name});
-			gen_tlv_type($cname, $field);
+			gen_tlv_type($cname, $field, $i++);
 		}
 
 		print <<EOF;
