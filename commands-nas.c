@@ -45,6 +45,22 @@ cmd_nas_set_network_modes_prepare(struct qmi_dev *qmi, struct qmi_request *req, 
 	return QMI_CMD_REQUEST;
 }
 
+#define cmd_nas_set_network_preference_cb no_cb
+static enum qmi_cmd_result
+cmd_nas_set_network_preference_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
+{
+	QmiNasGsmWcdmaAcquisitionOrderPreference pref = QMI_NAS_GSM_WCDMA_ACQUISITION_ORDER_PREFERENCE_AUTOMATIC;
+
+	if (!strcmp(arg, "gsm"))
+		pref = QMI_NAS_GSM_WCDMA_ACQUISITION_ORDER_PREFERENCE_GSM;
+	else if (!strcmp(arg, "wcdma"))
+		pref = QMI_NAS_GSM_WCDMA_ACQUISITION_ORDER_PREFERENCE_WCDMA;
+
+	qmi_set(&sel_req, gsm_wcdma_acquisition_order_preference, pref);
+	qmi_set_nas_set_system_selection_preference_request(msg, &sel_req);
+	return QMI_CMD_REQUEST;
+}
+
 #define cmd_nas_initiate_network_register_cb no_cb
 static enum qmi_cmd_result
 cmd_nas_initiate_network_register_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
