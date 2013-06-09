@@ -3,7 +3,7 @@
 	__uqmi_command(wds_set_auth, auth-type, required, CMD_TYPE_OPTION), \
 	__uqmi_command(wds_set_username, username, required, CMD_TYPE_OPTION), \
 	__uqmi_command(wds_set_password, password, required, CMD_TYPE_OPTION), \
-	__uqmi_command(wds_get_packet_service_status, get-data-status, no, CMD_TYPE_OPTION) \
+	__uqmi_command(wds_get_packet_service_status, get-data-status, no, QMI_SERVICE_WDS) \
 
 
 #define wds_helptext \
