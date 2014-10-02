@@ -104,7 +104,6 @@ cmd_wds_get_packet_service_status_cb(struct qmi_dev *qmi, struct qmi_request *re
 
 	qmi_parse_wds_get_packet_service_status_response(msg, &res);
 	if (res.set.connection_status &&
-	    res.data.connection_status >= 0 &&
 	    res.data.connection_status < ARRAY_SIZE(data_status))
 		s = res.data.connection_status;
 
