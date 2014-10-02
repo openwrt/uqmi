@@ -389,7 +389,7 @@ static void cmd_wms_get_raw_message_cb(struct qmi_dev *qmi, struct qmi_request *
 	data = (unsigned char *) res.data.raw_message_data.raw_data;
 	str = blobmsg_alloc_string_buffer(&status, NULL, res.data.raw_message_data.raw_data_n * 3);
 	for (i = 0; i < res.data.raw_message_data.raw_data_n; i++) {
-		str += sprintf(str, " %02x" + (i ? 0 : 1), data[i]);
+		str += sprintf(str, &" %02x"[i ? 0 : 1], data[i]);
 	}
 	blobmsg_add_string_buffer(&status);
 }
