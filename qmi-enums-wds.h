@@ -1002,4 +1002,16 @@ typedef enum {
     QMI_WDS_DS_PROFILE_ERROR_3GPP2_INVALID_PROFILE_ID    = 1101,
 } QmiWdsDsProfileError;
 
+/**
+ * QmiWdsAutoconnectSetting:
+ * @QMI_WDS_AUTOCONNECT_DISABLED: Disabled
+ * @QMI_WDS_AUTOCONNECT_ENABLED: Enabled
+ * @QMI_WDS_AUTOCONNECT_PAUSED: Paused (resume on power cycle)
+ */
+typedef enum {
+    QMI_WDS_AUTOCONNECT_DISABLED                         = 0,
+    QMI_WDS_AUTOCONNECT_ENABLED                          = 1,
+    QMI_WDS_AUTOCONNECT_PAUSED                           = 2,
+} QmiWdsAutoconnectSetting;
+
 #endif /* _LIBQMI_GLIB_QMI_ENUMS_WDS_H_ */

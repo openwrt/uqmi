@@ -950,6 +950,28 @@
                       "prerequisites" : [ { "common-ref" : "Success" } ] } ] },
 
   // *********************************************************************************
+  {  "name"    : "Get Autoconnect Setting",
+     "type"    : "Message",
+     "service" : "WDS",
+     "id"      : "0x0034",
+     "version" : "1.0",
+     "output"  : [  { "common-ref" : "Operation Result" },
+                    { "name"          : "Setting",
+                      "id"            : "0x01",
+                      "mandatory"     : "yes",
+                      "type"          : "TLV",
+                      "format"        : "gint8",
+                      "public-format" : "QmiWdsAutoconnectSetting",
+                      "prerequisites" : [ { "common-ref" : "Success" } ] },
+                    { "name"          : "Roaming",
+                      "id"            : "0x10",
+                      "mandatory"     : "no",
+                      "type"          : "TLV",
+                      "format"        : "gint8",
+                      "public-format" : "gboolean",
+                      "prerequisites" : [ { "common-ref" : "Success" } ] } ] },
+
+  // *********************************************************************************
   {  "name"    : "Get Data Bearer Technology",
      "type"    : "Message",
      "service" : "WDS",
@@ -1021,6 +1043,27 @@
                       "type"          : "TLV",
                       "format"        : "guint8",
                       "public-format" : "QmiWdsIpFamily" } ],
+     "output"  : [  { "common-ref" : "Operation Result" } ] },
+
+
+  // *********************************************************************************
+  {  "name"    : "Set Autoconnect Setting",
+     "type"    : "Message",
+     "service" : "WDS",
+     "id"      : "0x0051",
+     "version" : "1.0",
+     "input"   : [  { "name"          : "Setting",
+                      "id"            : "0x01",
+                      "mandatory"     : "yes",
+                      "type"          : "TLV",
+                      "format"        : "guint8",
+                      "public-format" : "QmiWdsAutoconnectSetting" },
+                    { "name"          : "Roaming",
+                      "id"            : "0x10",
+                      "mandatory"     : "no",
+                      "type"          : "TLV",
+                      "format"        : "guint8",
+                      "public-format" : "gboolean" } ],
      "output"  : [  { "common-ref" : "Operation Result" } ] }
 
 ]
