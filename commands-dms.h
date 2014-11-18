@@ -8,6 +8,7 @@
 	__uqmi_command(dms_set_new_pin, new-pin, required, CMD_TYPE_OPTION), \
 	__uqmi_command(dms_get_iccid, get-iccid, no, QMI_SERVICE_DMS), \
 	__uqmi_command(dms_get_imsi, get-imsi, no, QMI_SERVICE_DMS), \
+	__uqmi_command(dms_get_msisdn, get-msisdn, no, QMI_SERVICE_DMS), \
 	__uqmi_command(dms_set_operating_mode, set-device-operating-mode, required, QMI_SERVICE_DMS), \
 	__uqmi_command(dms_reset, reset-dms, no, QMI_SERVICE_DMS) \
 
@@ -23,6 +24,7 @@
 		"    --new-pin <new pin>:            New pin\n" \
 		"  --get-iccid:                      Get the ICCID\n" \
 		"  --get-imsi:                       Get International Mobile Subscriber ID\n" \
+    "  --get-msisdn:                     Get the MSISDN (telephone number)\n" \
 		"  --reset-dms:                      Reset the DMS service\n" \
 		"  --set-device-operating-mode <m>   Set the device operating mode\n" \
 		"                                    (modes: online, low_power, factory_test, offline\n" \
