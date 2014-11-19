@@ -24,7 +24,7 @@
 		"    --new-pin <new pin>:            New pin\n" \
 		"  --get-iccid:                      Get the ICCID\n" \
 		"  --get-imsi:                       Get International Mobile Subscriber ID\n" \
-    "  --get-msisdn:                     Get the MSISDN (telephone number)\n" \
+		"  --get-msisdn:                     Get the MSISDN (telephone number)\n" \
 		"  --reset-dms:                      Reset the DMS service\n" \
 		"  --set-device-operating-mode <m>   Set the device operating mode\n" \
 		"                                    (modes: online, low_power, factory_test, offline\n" \
