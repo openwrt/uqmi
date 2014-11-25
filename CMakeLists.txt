@@ -20,7 +20,7 @@ ENDIF()
 
 SET(service_headers)
 SET(service_sources)
-FOREACH(service ctl dms nas pds wds wms)
+FOREACH(service ctl dms nas pds wds wms wda)
 	ADD_CUSTOM_COMMAND(
 		OUTPUT qmi-message-${service}.h
 		COMMAND ./data/gen-header.pl ${service}_ ./data/qmi-service-${service}.json > qmi-message-${service}.h
