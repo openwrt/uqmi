@@ -270,7 +270,7 @@ static void cmd_wms_get_message_cb(struct qmi_dev *qmi, struct qmi_request *req,
 
 	cur_len = *(data++);
 	if (data + cur_len >= end)
-		return;
+		goto error;
 
 	if (cur_len) {
 		wms_decode_address("smsc", data, cur_len - 1);
@@ -278,7 +278,7 @@ static void cmd_wms_get_message_cb(struct qmi_dev *qmi, struct qmi_request *req,
 	}
 
 	if (data + 3 >= end)
-		return;
+		goto error;
 
 	first = *(data++);
 	sent = (first & 0x3) == 1;
@@ -287,7 +287,7 @@ static void cmd_wms_get_message_cb(struct qmi_dev *qmi, struct qmi_request *req,
 
 	cur_len = *(data++);
 	if (data + cur_len >= end)
-		return;
+		goto error;
 
 	if (cur_len) {
 		cur_len = (cur_len + 1) / 2;
@@ -296,18 +296,18 @@ static void cmd_wms_get_message_cb(struct qmi_dev *qmi, struct qmi_request *req,
 	}
 
 	if (data + 3 >= end)
-		return;
+		goto error;
 
 	/* Protocol ID */
 	if (*(data++) != 0)
-		return;
+		goto error;
 
 	/* Data Encoding */
 	dcs = *(data++);
 
 	/* only 7-bit encoding supported for now */
 	if (dcs & 0x0c)
-		return;
+		goto error;
 
 	if (dcs & 0x10)
 		blobmsg_add_u32(&status, "class", (dcs & 3));
@@ -317,7 +317,7 @@ static void cmd_wms_get_message_cb(struct qmi_dev *qmi, struct qmi_request *req,
 		data++;
 	} else {
 		if (data + 6 >= end)
-			return;
+			goto error;
 
 		str = blobmsg_alloc_string_buffer(&status, "timestamp", 32);
 
@@ -351,6 +351,12 @@ static void cmd_wms_get_message_cb(struct qmi_dev *qmi, struct qmi_request *req,
 	cur_len = *(data++);
 	decode_7bit_field("text", data, end - data, !!(first & 0x40));
 	blobmsg_close_table(&status, c);
+
+	return;
+
+error:
+	blobmsg_close_table(&status, c);
+	fprintf(stderr, "There was an error reading message.\n");
 }
 
 static enum qmi_cmd_result
