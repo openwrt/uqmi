@@ -253,6 +253,33 @@ static void wms_decode_address(char *name, unsigned char *data, int len)
 	blobmsg_add_string_buffer(&status);
 }
 
+#define cmd_wms_delete_message_cb no_cb
+static enum qmi_cmd_result
+cmd_wms_delete_message_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
+{
+	char *err;
+	int id;
+
+	id = strtoul(arg, &err, 10);
+	if (err && *err) {
+		uqmi_add_error("Invalid message ID");
+		return QMI_CMD_EXIT;
+	}
+
+	static struct qmi_wms_delete_request mreq = {
+		QMI_INIT(memory_storage, QMI_WMS_STORAGE_TYPE_UIM),
+		QMI_INIT(message_mode, QMI_WMS_MESSAGE_MODE_GSM_WCDMA),
+	};
+
+	mreq.set.memory_index = 1;
+	mreq.data.memory_index = id;
+
+	qmi_set_wms_delete_request(msg, &mreq);
+
+	return QMI_CMD_REQUEST;
+}
+
+
 static void cmd_wms_get_message_cb(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg)
 {
 	struct qmi_wms_raw_read_response res;
