@@ -239,6 +239,15 @@ static void wms_decode_address(char *name, unsigned char *data, int len)
 	blobmsg_add_string_buffer(&status);
 }
 
+static void blobmsg_add_hex(struct blob_buf *buf, const char *name, unsigned const char *data, int len)
+{
+	char* str = blobmsg_alloc_string_buffer(buf, name, len * 2 + 1);
+	for (int i = 0; i < len; i++) {
+		str += sprintf(str, "%02x", data[i]);
+	}
+	blobmsg_add_string_buffer(buf);
+}
+
 #define cmd_wms_delete_message_cb no_cb
 static enum qmi_cmd_result
 cmd_wms_delete_message_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
@@ -318,10 +327,6 @@ static void cmd_wms_get_message_cb(struct qmi_dev *qmi, struct qmi_request *req,
 	/* Data Encoding */
 	dcs = *(data++);
 
-	/* only 7-bit encoding supported for now */
-	if (dcs & 0x0c)
-		goto error;
-
 	if (dcs & 0x10)
 		blobmsg_add_u32(&status, "class", (dcs & 3));
 
@@ -374,9 +379,24 @@ static void cmd_wms_get_message_cb(struct qmi_dev *qmi, struct qmi_request *req,
 	if (data >= end)
 		goto error;
 
-	decode_7bit_field("text", data, end - data, bit_offset);
-	blobmsg_close_table(&status, c);
+	switch(dcs & 0x0c) {
+		case 0x00:
+			/* 7 bit GSM alphabet */
+			decode_7bit_field("text", data, end - data, bit_offset);
+			break;
+		case 0x04:
+			/* 8 bit data */
+			blobmsg_add_hex(&status, "data", data, end - data);
+			break;
+		case 0x08:
+			/* 16 bit UCS-2 string */
+			blobmsg_add_hex(&status, "ucs-2", data, end - data);
+			break;
+		default:
+			goto error;
+		}
 
+	blobmsg_close_table(&status, c);
 	return;
 
 error:
