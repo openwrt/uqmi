@@ -158,13 +158,13 @@ pdu_decode_7bit_str(char *dest, const unsigned char *data, int data_len, int bit
 	return len;
 }
 
-static void decode_udh(const unsigned char *data)
+static int decode_udh(const unsigned char *data)
 {
 	const unsigned char *end;
-	unsigned int type, len;
+	unsigned int type, len, udh_len;
 
-	len = *(data++);
-	end = data + len;
+	udh_len = *(data++);
+	end = data + udh_len;
 	while (data < end) {
 		const unsigned char *val;
 
@@ -185,29 +185,15 @@ static void decode_udh(const unsigned char *data)
 			break;
 		}
 	}
+
+	return udh_len + 1;
 }
 
-static void decode_7bit_field(char *name, const unsigned char *data, int data_len, bool udh)
+static void decode_7bit_field(char *name, const unsigned char *data, int data_len, int bit_offset)
 {
-	const unsigned char *udh_start;
-	char *dest;
-	int pos_offset = 0;
-
-	if (udh) {
-		int len = data[0] + 1;
-
-		udh_start = data;
-		data += len;
-		data_len -= len;
-		pos_offset = len % 7;
-	}
-
-	dest = blobmsg_alloc_string_buffer(&status, name, 3 * (data_len * 8 / 7) + 2);
-	pdu_decode_7bit_str(dest, data, data_len, pos_offset);
+	char *dest = blobmsg_alloc_string_buffer(&status, name, 3 * (data_len * 8 / 7) + 2);
+	pdu_decode_7bit_str(dest, data, data_len, bit_offset);
 	blobmsg_add_string_buffer(&status);
-
-	if (udh)
-		decode_udh(udh_start);
 }
 
 static char *pdu_add_semioctet(char *str, char val)
@@ -375,8 +361,20 @@ static void cmd_wms_get_message_cb(struct qmi_dev *qmi, struct qmi_request *req,
 		data += 7;
 	}
 
-	cur_len = *(data++);
-	decode_7bit_field("text", data, end - data, !!(first & 0x40));
+	data++;
+	int bit_offset = 0;
+
+	/* User Data Header */
+	if (first & 0x40) {
+		int udh_len = decode_udh(data);
+		data += udh_len;
+		bit_offset = udh_len % 7;
+		}
+
+	if (data >= end)
+		goto error;
+
+	decode_7bit_field("text", data, end - data, bit_offset);
 	blobmsg_close_table(&status, c);
 
 	return;
