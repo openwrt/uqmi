@@ -1,5 +1,8 @@
 #include "qmi-message.h"
 
+#define MIN(a,b) (((a)<(b))?(a):(b))
+#define CEILDIV(x,y) (((x) + (y) - 1) / (y))
+
 static void cmd_wms_list_messages_cb(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg)
 {
 	struct qmi_wms_list_messages_response res;
@@ -191,8 +194,9 @@ static int decode_udh(const unsigned char *data)
 
 static void decode_7bit_field(char *name, const unsigned char *data, int data_len, int bit_offset)
 {
-	char *dest = blobmsg_alloc_string_buffer(&status, name, 3 * (data_len * 8 / 7) + 2);
-	pdu_decode_7bit_str(dest, data, data_len, bit_offset);
+	char *dest = blobmsg_alloc_string_buffer(&status, name, 3 * data_len + 2);
+	pdu_decode_7bit_str(dest, data, CEILDIV(data_len * 7, 8), bit_offset);
+	dest[data_len] = 0;
 	blobmsg_add_string_buffer(&status);
 }
 
@@ -366,12 +370,13 @@ static void cmd_wms_get_message_cb(struct qmi_dev *qmi, struct qmi_request *req,
 		data += 7;
 	}
 
-	data++;
+	int message_len = *(data++);
+	int udh_len = 0;
 	int bit_offset = 0;
 
 	/* User Data Header */
 	if (first & 0x40) {
-		int udh_len = decode_udh(data);
+		udh_len = decode_udh(data);
 		data += udh_len;
 		bit_offset = udh_len % 7;
 		}
@@ -382,15 +387,19 @@ static void cmd_wms_get_message_cb(struct qmi_dev *qmi, struct qmi_request *req,
 	switch(dcs & 0x0c) {
 		case 0x00:
 			/* 7 bit GSM alphabet */
-			decode_7bit_field("text", data, end - data, bit_offset);
+			message_len = message_len - CEILDIV(udh_len * 8, 7);
+			message_len = MIN(message_len, CEILDIV((end - data) * 8, 7));
+			decode_7bit_field("text", data, message_len, bit_offset);
 			break;
 		case 0x04:
 			/* 8 bit data */
-			blobmsg_add_hex(&status, "data", data, end - data);
+			message_len = MIN(message_len - udh_len, end - data);
+			blobmsg_add_hex(&status, "data", data, message_len);
 			break;
 		case 0x08:
 			/* 16 bit UCS-2 string */
-			blobmsg_add_hex(&status, "ucs-2", data, end - data);
+			message_len = MIN(message_len - udh_len, end - data);
+			blobmsg_add_hex(&status, "ucs-2", data, message_len);
 			break;
 		default:
 			goto error;
