@@ -75,6 +75,59 @@ cmd_dms_verify_pin2_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct
 	return QMI_CMD_REQUEST;
 }
 
+static struct qmi_dms_uim_set_pin_protection_request dms_pin_protection_req = {
+	QMI_INIT_SEQUENCE(info,
+		.pin_id = QMI_DMS_UIM_PIN_ID_PIN
+	)
+};
+
+#define cmd_dms_set_pin_cb no_cb
+static enum qmi_cmd_result
+cmd_dms_set_pin_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
+{
+	qmi_set_ptr(&dms_pin_protection_req, info.pin, arg);
+	return QMI_CMD_DONE;
+}
+
+static enum qmi_cmd_result
+cmd_dms_set_pin_protection_prepare(struct qmi_msg *msg, char *arg)
+{
+	if (!dms_pin_protection_req.data.info.pin) {
+		uqmi_add_error("Missing argument");
+		return QMI_CMD_EXIT;
+	}
+
+	int is_enabled;
+	if (strcasecmp(arg, "disabled") == 0)
+		is_enabled = false;
+	else if (strcasecmp(arg, "enabled") == 0)
+		is_enabled = true;
+	else {
+		uqmi_add_error("Invalid value (valid: disabled, enabled)");
+		return QMI_CMD_EXIT;
+	}
+
+	qmi_set_ptr(&dms_pin_protection_req, info.protection_enabled, is_enabled);
+	qmi_set_dms_uim_set_pin_protection_request(msg, &dms_pin_protection_req);
+	return QMI_CMD_REQUEST;
+}
+
+#define cmd_dms_set_pin1_protection_cb no_cb
+static enum qmi_cmd_result
+cmd_dms_set_pin1_protection_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
+{
+	qmi_set_ptr(&dms_pin_protection_req, info.pin_id, QMI_DMS_UIM_PIN_ID_PIN);
+	return cmd_dms_set_pin_protection_prepare(msg, arg);
+}
+
+#define cmd_dms_set_pin2_protection_cb no_cb
+static enum qmi_cmd_result
+cmd_dms_set_pin2_protection_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
+{
+	qmi_set_ptr(&dms_pin_protection_req, info.pin_id, QMI_DMS_UIM_PIN_ID_PIN2);
+	return cmd_dms_set_pin_protection_prepare(msg, arg);
+}
+
 static struct qmi_dms_uim_unblock_pin_request dms_unlock_pin_req = {
 	QMI_INIT_SEQUENCE(info,
 			.pin_id = QMI_DMS_UIM_PIN_ID_PIN
