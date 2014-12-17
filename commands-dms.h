@@ -5,6 +5,8 @@
 	__uqmi_command(dms_set_pin1_protection, set-pin1-protection, required, QMI_SERVICE_DMS), \
 	__uqmi_command(dms_set_pin2_protection, set-pin2-protection, required, QMI_SERVICE_DMS), \
 	__uqmi_command(dms_set_pin, pin, required, CMD_TYPE_OPTION), \
+	__uqmi_command(dms_change_pin1, change-pin1, no, QMI_SERVICE_DMS), \
+	__uqmi_command(dms_change_pin2, change-pin2, no, QMI_SERVICE_DMS), \
 	__uqmi_command(dms_unblock_pin1, unblock-pin1, no, QMI_SERVICE_DMS), \
 	__uqmi_command(dms_unblock_pin2, unblock-pin2, no, QMI_SERVICE_DMS), \
 	__uqmi_command(dms_set_puk, puk, required, CMD_TYPE_OPTION), \
@@ -23,6 +25,12 @@
 		"    --pin <pin>:                    PIN1 needed to change state\n" \
 		"  --set-pin2-protection <state>:    Set PIN2 protection state (disabled, enabled)\n" \
 		"    --pin <pin2>:                   PIN2 needed to change state\n" \
+		"  --change-pin1:                    Change PIN1\n" \
+		"    --pin <old pin>:                Current PIN1\n" \
+		"    --new-pin <new pin>:            New pin\n" \
+		"  --change-pin2:                    Change PIN2\n" \
+		"    --pin <old pin>:                Current PIN2\n" \
+		"    --new-pin <new pin>:            New pin\n" \
 		"  --unblock-pin1:                   Unblock PIN1\n" \
 		"    --puk <puk>:                    PUK needed to unblock\n" \
 		"    --new-pin <new pin>:            New pin\n" \
