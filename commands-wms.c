@@ -70,6 +70,7 @@ pdu_decode_7bit_char(char *dest, int len, unsigned char c, bool *escape)
 	fprintf(stderr, " %02x", c);
 	dest += len;
 	if (*escape) {
+		*escape = false;
 		switch(c) {
 		case 0x0A:
 			*dest = 0x0C;
