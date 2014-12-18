@@ -512,7 +512,7 @@ pdu_encode_semioctet(unsigned char *dest, const char *str)
 		str++;
 	}
 
-	return len;
+	return lower ? len : (len + 1);
 }
 
 static int
