@@ -560,7 +560,7 @@ pdu_encode_number(unsigned char *dest, const char *str, bool smsc)
 	}
 
 	for (i = 0; str[i]; i++) {
-		if (str[i] >= '0' || str[i] <= '9')
+		if (str[i] >= '0' && str[i] <= '9')
 			continue;
 
 		ascii = true;
