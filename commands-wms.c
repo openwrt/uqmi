@@ -612,12 +612,12 @@ cmd_wms_send_message_prepare(struct qmi_dev *qmi, struct qmi_request *req, struc
 	unsigned char protocol_id = 0x00;
 	unsigned char dcs = 0x00;
 
-	if (!_send.smsc || !*_send.smsc || !_send.target || !*_send.target) {
+	if (!_send.target || !*_send.target) {
 		uqmi_add_error("Missing argument");
 		return QMI_CMD_EXIT;
 	}
 
-	if (strlen(_send.smsc) > 16 || strlen(_send.target) > 16 || strlen(arg) > 160) {
+	if ((_send.smsc && strlen(_send.smsc) > 16) || strlen(_send.target) > 16 || strlen(arg) > 160) {
 		uqmi_add_error("Argument too long");
 		return QMI_CMD_EXIT;
 	}
@@ -625,7 +625,11 @@ cmd_wms_send_message_prepare(struct qmi_dev *qmi, struct qmi_request *req, struc
 	if (_send.flash)
 		dcs |= 0x10;
 
-	cur += pdu_encode_number(cur, _send.smsc, true);
+	if (!_send.smsc || !*_send.smsc)
+		*(cur++) = 0;
+	else
+		cur += pdu_encode_number(cur, _send.smsc, true);
+
 	*(cur++) = first_octet;
 	*(cur++) = 0; /* reference */
 

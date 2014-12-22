@@ -14,7 +14,7 @@
 		"  --get-message <id>:               Get SMS message at index <id>\n" \
 		"  --get-raw-message <id>:           Get SMS raw message contents at index <id>\n" \
 		"  --send-message <data>:            Send SMS message (use options below)\n" \
-		"    --send-message-smsc <nr>:       SMSC number (required)\n" \
+		"    --send-message-smsc <nr>:       SMSC number\n" \
 		"    --send-message-target <nr>:     Destination number (required)\n" \
 		"    --send-message-flash:           Send as Flash SMS\n" \
 
