@@ -591,7 +591,7 @@ pdu_encode_data(unsigned char *dest, const char *str)
 
 	dest[len++] = 0;
 	len += pdu_encode_7bit_str(&dest[len], str);
-	dest[0] = len - 1;
+	dest[0] = strlen(str);
 
 	return len;
 }
