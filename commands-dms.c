@@ -7,6 +7,59 @@ static struct {
 	char* puk;
 } dms_req_data;
 
+static void cmd_dms_get_capabilities_cb(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg)
+{
+	void *t, *networks;
+	int i;
+	struct qmi_dms_get_capabilities_response res;
+	const char *radio_cap[] = {
+		[QMI_DMS_RADIO_INTERFACE_CDMA20001X] = "cdma1x",
+		[QMI_DMS_RADIO_INTERFACE_EVDO] = "cdma1xevdo",
+		[QMI_DMS_RADIO_INTERFACE_GSM] = "gsm",
+		[QMI_DMS_RADIO_INTERFACE_UMTS] = "umts",
+		[QMI_DMS_RADIO_INTERFACE_LTE] = "lte",
+	};
+	const char *service_cap[] = {
+		[QMI_DMS_DATA_SERVICE_CAPABILITY_NONE] = "none",
+		[QMI_DMS_DATA_SERVICE_CAPABILITY_CS] = "cs",
+		[QMI_DMS_DATA_SERVICE_CAPABILITY_PS] = "ps",
+		[QMI_DMS_DATA_SERVICE_CAPABILITY_SIMULTANEOUS_CS_PS] = "simultaneous_cs_ps",
+		[QMI_DMS_DATA_SERVICE_CAPABILITY_NON_SIMULTANEOUS_CS_PS] = "non_simultaneous_cs_ps",
+	};
+
+	qmi_parse_dms_get_capabilities_response(msg, &res);
+
+	t = blobmsg_open_table(&status, NULL);
+
+	blobmsg_add_u32(&status, "max_tx_channel_rate", (int32_t) res.data.info.max_tx_channel_rate);
+	blobmsg_add_u32(&status, "max_rx_channel_rate", (int32_t) res.data.info.max_rx_channel_rate);
+	if ((int)res.data.info.data_service_capability >= 0 && res.data.info.data_service_capability < ARRAY_SIZE(service_cap))
+		blobmsg_add_string(&status, "data_service", service_cap[res.data.info.data_service_capability]);
+
+	if(res.data.info.sim_capability == QMI_DMS_SIM_CAPABILITY_NOT_SUPPORTED)
+		blobmsg_add_string(&status, "sim", "not supported");
+	else if(res.data.info.sim_capability == QMI_DMS_SIM_CAPABILITY_SUPPORTED)
+		blobmsg_add_string(&status, "sim", "supported");
+
+	networks = blobmsg_open_array(&status, "networks");
+	for (i = 0; i < res.data.info.radio_interface_list_n; i++) {
+		if ((int)res.data.info.radio_interface_list[i] >= 0 && res.data.info.radio_interface_list[i] < ARRAY_SIZE(radio_cap))
+			blobmsg_add_string(&status, NULL, radio_cap[res.data.info.radio_interface_list[i]]);
+		else
+			blobmsg_add_string(&status, NULL, "unknown");
+	}
+	blobmsg_close_array(&status, networks);
+
+	blobmsg_close_table(&status, t);
+}
+
+static enum qmi_cmd_result
+cmd_dms_get_capabilities_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
+{
+	qmi_set_dms_get_capabilities_request(msg);
+	return QMI_CMD_REQUEST;
+}
+
 static const char *get_pin_status(int status)
 {
 	static const char *pin_status[] = {
