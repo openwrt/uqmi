@@ -1,6 +1,10 @@
 #include "qmi-message.h"
 
 static struct qmi_nas_set_system_selection_preference_request sel_req;
+static struct	{
+	bool mcc_is_set;
+	bool mnc_is_set;
+} plmn_code_flag;
 
 #define cmd_nas_do_set_system_selection_cb no_cb
 static enum qmi_cmd_result
@@ -96,6 +100,62 @@ cmd_nas_set_roaming_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct
 		return uqmi_add_error("Invalid argument");
 
 	qmi_set(&sel_req, roaming_preference, pref);
+	return do_sel_network();
+}
+
+#define cmd_nas_set_mcc_cb no_cb
+static enum qmi_cmd_result
+cmd_nas_set_mcc_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
+{
+	char *err;
+	int value = strtoul(arg, &err, 10);
+	if (err && *err) {
+		uqmi_add_error("Invalid MCC value");
+		return QMI_CMD_EXIT;
+	}
+
+	sel_req.data.network_selection_preference.mcc = value;
+	plmn_code_flag.mcc_is_set = true;
+	return QMI_CMD_DONE;
+}
+
+#define cmd_nas_set_mnc_cb no_cb
+static enum qmi_cmd_result
+cmd_nas_set_mnc_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
+{
+	char *err;
+	int value = strtoul(arg, &err, 10);
+	if (err && *err) {
+		uqmi_add_error("Invalid MNC value");
+		return QMI_CMD_EXIT;
+	}
+
+	sel_req.data.network_selection_preference.mnc = value;
+	plmn_code_flag.mnc_is_set = true;
+	return QMI_CMD_DONE;
+}
+
+#define cmd_nas_set_plmn_cb no_cb
+static enum qmi_cmd_result
+cmd_nas_set_plmn_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
+{
+	sel_req.set.network_selection_preference = 1;
+	sel_req.data.network_selection_preference.mode = QMI_NAS_NETWORK_SELECTION_PREFERENCE_AUTOMATIC;
+
+	if (!plmn_code_flag.mcc_is_set && plmn_code_flag.mnc_is_set) {
+		uqmi_add_error("No MCC value");
+		return QMI_CMD_EXIT;
+	}
+
+	if (plmn_code_flag.mcc_is_set && sel_req.data.network_selection_preference.mcc) {
+		if (!plmn_code_flag.mnc_is_set) {
+			uqmi_add_error("No MNC value");
+			return QMI_CMD_EXIT;
+		} else {
+			sel_req.data.network_selection_preference.mode = QMI_NAS_NETWORK_SELECTION_PREFERENCE_MANUAL;
+		}
+	}
+
 	return do_sel_network();
 }
 

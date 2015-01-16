@@ -2,6 +2,9 @@
 	__uqmi_command(nas_do_set_system_selection, __set-system-selection, no, QMI_SERVICE_NAS), \
 	__uqmi_command(nas_set_network_modes, set-network-modes, required, CMD_TYPE_OPTION), \
 	__uqmi_command(nas_initiate_network_register, network-register, no, QMI_SERVICE_NAS), \
+	__uqmi_command(nas_set_plmn, set-plmn, no, QMI_SERVICE_NAS), \
+	__uqmi_command(nas_set_mcc, mcc, required, CMD_TYPE_OPTION), \
+	__uqmi_command(nas_set_mnc, mnc, required, CMD_TYPE_OPTION), \
 	__uqmi_command(nas_network_scan, network-scan, no, QMI_SERVICE_NAS), \
 	__uqmi_command(nas_get_signal_info, get-signal-info, no, QMI_SERVICE_NAS), \
 	__uqmi_command(nas_get_serving_system, get-serving-system, no, QMI_SERVICE_NAS), \
@@ -17,6 +20,9 @@
 		"                                    Available modes: any, off, only\n" \
 		"  --network-scan:                   Initiate network scan\n" \
 		"  --network-register:               Initiate network register\n" \
+		"  --set-plmn:                       Register at specified network\n" \
+		"    --mcc <mcc>:                    Mobile Country Code (0 - auto)\n" \
+		"    --mnc <mnc>:                    Mobile Network Code\n" \
 		"  --get-signal-info:                Get signal strength info\n" \
 		"  --get-serving-system:             Get serving system info\n" \
 
