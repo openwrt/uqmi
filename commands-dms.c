@@ -331,6 +331,22 @@ cmd_dms_get_msisdn_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct 
 	return QMI_CMD_REQUEST;
 }
 
+static void cmd_dms_get_imei_cb(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg)
+{
+	struct qmi_dms_get_ids_response res;
+
+	qmi_parse_dms_get_ids_response(msg, &res);
+	if (res.data.imei)
+		blobmsg_add_string(&status, NULL, res.data.imei);
+}
+
+static enum qmi_cmd_result
+cmd_dms_get_imei_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
+{
+	qmi_set_dms_get_ids_request(msg);
+	return QMI_CMD_REQUEST;
+}
+
 #define cmd_dms_reset_cb no_cb
 static enum qmi_cmd_result
 cmd_dms_reset_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
