@@ -24,6 +24,7 @@
 	__uqmi_command(wds_set_auth, auth-type, required, CMD_TYPE_OPTION), \
 	__uqmi_command(wds_set_username, username, required, CMD_TYPE_OPTION), \
 	__uqmi_command(wds_set_password, password, required, CMD_TYPE_OPTION), \
+	__uqmi_command(wds_set_ip_family, ip-family, required, CMD_TYPE_OPTION), \
 	__uqmi_command(wds_set_autoconnect, autoconnect, no, CMD_TYPE_OPTION), \
 	__uqmi_command(wds_stop_network, stop-network, required, QMI_SERVICE_WDS), \
 	__uqmi_command(wds_get_packet_service_status, get-data-status, no, QMI_SERVICE_WDS), \
@@ -36,6 +37,7 @@
 		"    --auth-type pap|chap|both|none: Use network authentication type\n" \
 		"    --username <name>:              Use network username\n" \
 		"    --password <password>:          Use network password\n" \
+		"    --ip-family <family>:           Use ip-family for the connection (ipv4, ipv6, unspecified)\n" \
 		"    --autoconnect:                  Enable automatic connect/reconnect\n" \
 		"  --stop-network <pdh>:             Stop network connection (use with option below)\n" \
 		"    --autoconnect:                  Disable automatic connect/reconnect\n" \

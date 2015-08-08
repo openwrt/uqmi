@@ -170,3 +170,31 @@ cmd_wds_reset_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_m
 	qmi_set_wds_reset_request(msg);
 	return QMI_CMD_REQUEST;
 }
+
+#define cmd_wds_set_ip_family_cb no_cb
+static enum qmi_cmd_result
+cmd_wds_set_ip_family_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
+{
+	struct qmi_wds_set_ip_family_request ipf_req;
+	const struct ip_modes {
+		const char *name;
+		const QmiWdsIpFamily mode;
+	} modes[] = {
+		{ "ipv4", QMI_WDS_IP_FAMILY_IPV4 },
+		{ "ipv6", QMI_WDS_IP_FAMILY_IPV6 },
+		{ "unspecified", QMI_WDS_IP_FAMILY_UNSPECIFIED },
+	};
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(modes); i++) {
+		if (strcasecmp(modes[i].name, arg) != 0)
+			continue;
+
+		qmi_set(&ipf_req, preference, modes[i].mode);
+		qmi_set_wds_set_ip_family_request(msg, &ipf_req);
+		return QMI_CMD_REQUEST;
+	}
+
+	uqmi_add_error("Invalid value (valid: ipv4, ipv6, unspecified)");
+	return QMI_CMD_EXIT;
+}
