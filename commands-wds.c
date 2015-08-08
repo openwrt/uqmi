@@ -20,6 +20,7 @@
  */
 
 #include <stdlib.h>
+#include <arpa/inet.h>
 
 #include "qmi-message.h"
 
@@ -197,4 +198,126 @@ cmd_wds_set_ip_family_prepare(struct qmi_dev *qmi, struct qmi_request *req, stru
 
 	uqmi_add_error("Invalid value (valid: ipv4, ipv6, unspecified)");
 	return QMI_CMD_EXIT;
+}
+
+static void wds_to_ipv4(const char *name, const uint32_t addr)
+{
+	struct in_addr ip_addr;
+	char buf[INET_ADDRSTRLEN];
+
+	ip_addr.s_addr = htonl(addr);
+	blobmsg_add_string(&status, name, inet_ntop(AF_INET, &ip_addr, buf, sizeof(buf)));
+}
+
+static void wds_to_ipv6(const char *name, const uint16_t *addr)
+{
+	int i;
+	struct in6_addr ip_addr;
+	char buf[INET6_ADDRSTRLEN];
+
+	for (i = 0; i < ARRAY_SIZE(ip_addr.s6_addr16); i++) {
+		ip_addr.s6_addr16[i] = htons(addr[i]);
+	}
+
+	blobmsg_add_string(&status, name, inet_ntop(AF_INET6, &ip_addr, buf, sizeof(buf)));
+}
+
+static void
+cmd_wds_get_current_settings_cb(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg)
+{
+	void *v4, *v6, *d, *t;
+	struct qmi_wds_get_current_settings_response res;
+	const char *pdptypes[] = {
+		[QMI_WDS_PDP_TYPE_IPV4] = "ipv4",
+		[QMI_WDS_PDP_TYPE_PPP] = "ppp",
+		[QMI_WDS_PDP_TYPE_IPV6] = "ipv6",
+		[QMI_WDS_PDP_TYPE_IPV4_OR_IPV6] = "ipv4-or-ipv6",
+	};
+	const struct ip_modes {
+		const char *name;
+		const QmiWdsIpFamily mode;
+	} modes[] = {
+		{ "ipv4", QMI_WDS_IP_FAMILY_IPV4 },
+		{ "ipv6", QMI_WDS_IP_FAMILY_IPV6 },
+		{ "unspecified", QMI_WDS_IP_FAMILY_UNSPECIFIED },
+	};
+	int i;
+
+	qmi_parse_wds_get_current_settings_response(msg, &res);
+
+	t = blobmsg_open_table(&status, NULL);
+
+	if (res.set.pdp_type && res.data.pdp_type < ARRAY_SIZE(pdptypes))
+		blobmsg_add_string(&status, "pdp-type", pdptypes[res.data.pdp_type]);
+
+	if (res.set.ip_family) {
+		for (i = 0; i < ARRAY_SIZE(modes); i++) {
+			if (modes[i].mode != res.data.ip_family)
+				continue;
+			blobmsg_add_string(&status, "ip-family", modes[i].name);
+			break;
+		}
+	}
+
+	if (res.set.mtu)
+		blobmsg_add_u32(&status, "mtu", res.data.mtu);
+
+	/* IPV4 */
+	v4 = blobmsg_open_table(&status, "ipv4");
+
+	if (res.set.ipv4_address)
+		wds_to_ipv4("ip", res.data.ipv4_address);
+	if (res.set.primary_ipv4_dns_address)
+		wds_to_ipv4("dns1", res.data.primary_ipv4_dns_address);
+	if (res.set.secondary_ipv4_dns_address)
+		wds_to_ipv4("dns2", res.data.secondary_ipv4_dns_address);
+	if (res.set.ipv4_gateway_address)
+		wds_to_ipv4("gateway", res.data.ipv4_gateway_address);
+	if (res.set.ipv4_gateway_subnet_mask)
+		wds_to_ipv4("subnet", res.data.ipv4_gateway_subnet_mask);
+	blobmsg_close_table(&status, v4);
+
+	/* IPV6 */
+	v6 = blobmsg_open_table(&status, "ipv6");
+
+	if (res.set.ipv6_address) {
+		wds_to_ipv6("ip", res.data.ipv6_address.address);
+		blobmsg_add_u32(&status, "ip-prefix-length", res.data.ipv6_address.prefix_length);
+	}
+	if (res.set.ipv6_gateway_address) {
+		wds_to_ipv6("gateway", res.data.ipv6_gateway_address.address);
+		blobmsg_add_u32(&status, "gw-prefix-length", res.data.ipv6_gateway_address.prefix_length);
+	}
+	if (res.set.ipv6_primary_dns_address)
+		wds_to_ipv6("dns1", res.data.ipv6_primary_dns_address);
+	if (res.set.ipv6_secondary_dns_address)
+		wds_to_ipv6("dns2", res.data.ipv6_secondary_dns_address);
+
+	blobmsg_close_table(&status, v6);
+
+	d = blobmsg_open_table(&status, "domain-names");
+	for (i = 0; i < res.data.domain_name_list_n; i++) {
+		blobmsg_add_string(&status, NULL, res.data.domain_name_list[i]);
+	}
+	blobmsg_close_table(&status, d);
+
+	blobmsg_close_table(&status, t);
+}
+
+static enum qmi_cmd_result
+cmd_wds_get_current_settings_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
+{
+	struct qmi_wds_get_current_settings_request gcs_req;
+	memset(&gcs_req, '\0', sizeof(struct qmi_wds_get_current_settings_request));
+	qmi_set(&gcs_req, requested_settings,
+		QMI_WDS_GET_CURRENT_SETTINGS_REQUESTED_SETTINGS_PDP_TYPE |
+		QMI_WDS_GET_CURRENT_SETTINGS_REQUESTED_SETTINGS_DNS_ADDRESS |
+		QMI_WDS_GET_CURRENT_SETTINGS_REQUESTED_SETTINGS_GRANTED_QOS |
+		QMI_WDS_GET_CURRENT_SETTINGS_REQUESTED_SETTINGS_IP_ADDRESS |
+		QMI_WDS_GET_CURRENT_SETTINGS_REQUESTED_SETTINGS_GATEWAY_INFO |
+		QMI_WDS_GET_CURRENT_SETTINGS_REQUESTED_SETTINGS_MTU |
+		QMI_WDS_GET_CURRENT_SETTINGS_REQUESTED_SETTINGS_DOMAIN_NAME_LIST |
+		QMI_WDS_GET_CURRENT_SETTINGS_REQUESTED_SETTINGS_IP_FAMILY);
+	qmi_set_wds_get_current_settings_request(msg, &gcs_req);
+	return QMI_CMD_REQUEST;
 }
