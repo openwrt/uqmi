@@ -1,14 +1,26 @@
 cmake_minimum_required(VERSION 2.6)
 
 PROJECT(uqmi C)
+
+OPTION(BUILD_STATIC OFF)
+
 ADD_DEFINITIONS(-Os -ggdb -Wall -Werror --std=gnu99 -Wmissing-declarations -Wno-enum-conversion)
 
 SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
 
 SET(SOURCES main.c dev.c commands.c qmi-message.c)
 
-FIND_LIBRARY(json json-c json)
-SET(LIBS ubox blobmsg_json ${json})
+IF(BUILD_STATIC)
+  FIND_LIBRARY(json NAMES libjson.a libjson-c.a)
+  FIND_LIBRARY(blobmsg_json NAMES libblobmsg_json.a)
+  FIND_LIBRARY(ubox NAMES libubox.a)
+ELSE(BUILD_STATIC)
+  FIND_LIBRARY(json NAMES json-c json)
+  FIND_LIBRARY(blobmsg_json NAMES blobmsg_json)
+  FIND_LIBRARY(ubox NAMES ubox)
+ENDIF(BUILD_STATIC)
+
+SET(LIBS ${ubox} ${blobmsg_json} ${json})
 
 IF(DEBUG_PACKET)
   ADD_DEFINITIONS(-DDEBUG_PACKET)
