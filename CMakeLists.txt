@@ -39,24 +39,24 @@ SET(service_headers)
 SET(service_sources)
 FOREACH(service ctl dms nas pds wds wms wda)
 	ADD_CUSTOM_COMMAND(
-		OUTPUT qmi-message-${service}.h
-		COMMAND ./data/gen-header.pl ${service}_ ./data/qmi-service-${service}.json > qmi-message-${service}.h
-		DEPENDS ./data/gen-header.pl ./data/qmi-service-${service}.json ./data/gen-common.pm
+		OUTPUT  ${CMAKE_SOURCE_DIR}/qmi-message-${service}.h
+		COMMAND ${CMAKE_SOURCE_DIR}/data/gen-header.pl ${service}_ ${CMAKE_SOURCE_DIR}/data/qmi-service-${service}.json > ${CMAKE_SOURCE_DIR}/qmi-message-${service}.h
+		DEPENDS ${CMAKE_SOURCE_DIR}/data/gen-header.pl ${CMAKE_SOURCE_DIR}/data/qmi-service-${service}.json ${CMAKE_SOURCE_DIR}/data/gen-common.pm
 	)
 	SET(service_headers ${service_headers} qmi-message-${service}.h)
 	ADD_CUSTOM_COMMAND(
-		OUTPUT qmi-message-${service}.c
-		COMMAND ./data/gen-code.pl ${service}_ ./data/qmi-service-${service}.json > qmi-message-${service}.c
-		DEPENDS ./data/gen-code.pl ./data/qmi-service-${service}.json ./data/gen-common.pm
+		OUTPUT  ${CMAKE_SOURCE_DIR}/qmi-message-${service}.c
+		COMMAND ${CMAKE_SOURCE_DIR}/data/gen-code.pl ${service}_ ${CMAKE_SOURCE_DIR}/data/qmi-service-${service}.json > ${CMAKE_SOURCE_DIR}/qmi-message-${service}.c
+		DEPENDS ${CMAKE_SOURCE_DIR}/data/gen-code.pl ${CMAKE_SOURCE_DIR}/data/qmi-service-${service}.json ${CMAKE_SOURCE_DIR}/data/gen-common.pm
 	)
 	SET(service_sources ${service_sources} qmi-message-${service}.c)
 	set_property(SOURCE qmi-message-${service}.c PROPERTY COMPILE_FLAGS "-Wno-unused")
 ENDFOREACH()
 
 ADD_CUSTOM_COMMAND(
-	OUTPUT qmi-errors.c
-	COMMAND ./data/gen-error-list.pl ./qmi-errors.h > qmi-errors.c
-	DEPENDS ./data/gen-error-list.pl ./qmi-errors.h
+	OUTPUT  ${CMAKE_SOURCE_DIR}/qmi-errors.c
+	COMMAND ${CMAKE_SOURCE_DIR}/data/gen-error-list.pl ${CMAKE_SOURCE_DIR}/qmi-errors.h > ${CMAKE_SOURCE_DIR}/qmi-errors.c
+	DEPENDS ${CMAKE_SOURCE_DIR}/data/gen-error-list.pl ${CMAKE_SOURCE_DIR}/qmi-errors.h
 )
 ADD_CUSTOM_TARGET(gen-errors DEPENDS qmi-errors.c)
 ADD_CUSTOM_TARGET(gen-headers DEPENDS ${service_headers})
