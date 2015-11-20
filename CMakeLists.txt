@@ -10,6 +10,11 @@ SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
 
 SET(SOURCES main.c dev.c commands.c qmi-message.c)
 
+FIND_PATH(ubox_include_dir libubox/usock.h)
+FIND_PATH(blobmsg_json_include_dir libubox/blobmsg_json.h)
+FIND_PATH(json_include_dir json-c/json.h json/json.h json.h)
+INCLUDE_DIRECTORIES(${ubox_include_dir} ${blobmsg_json_include_dir} ${json_include_dir})
+
 IF(BUILD_STATIC)
   FIND_LIBRARY(json NAMES libjson.a libjson-c.a)
   FIND_LIBRARY(blobmsg_json NAMES libblobmsg_json.a)
