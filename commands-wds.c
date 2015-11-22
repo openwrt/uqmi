@@ -246,7 +246,7 @@ cmd_wds_get_current_settings_cb(struct qmi_dev *qmi, struct qmi_request *req, st
 
 	t = blobmsg_open_table(&status, NULL);
 
-	if (res.set.pdp_type && res.data.pdp_type < ARRAY_SIZE(pdptypes))
+	if (res.set.pdp_type && (int) res.data.pdp_type < ARRAY_SIZE(pdptypes))
 		blobmsg_add_string(&status, "pdp-type", pdptypes[res.data.pdp_type]);
 
 	if (res.set.ip_family) {
