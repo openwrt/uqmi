@@ -211,13 +211,12 @@ static void wds_to_ipv4(const char *name, const uint32_t addr)
 
 static void wds_to_ipv6(const char *name, const uint16_t *addr)
 {
-	int i;
-	struct in6_addr ip_addr;
 	char buf[INET6_ADDRSTRLEN];
+	uint16_t ip_addr[8];
+	int i;
 
-	for (i = 0; i < ARRAY_SIZE(ip_addr.s6_addr16); i++) {
-		ip_addr.s6_addr16[i] = htons(addr[i]);
-	}
+	for (i = 0; i < ARRAY_SIZE(ip_addr); i++)
+		ip_addr[i] = htons(addr[i]);
 
 	blobmsg_add_string(&status, name, inet_ntop(AF_INET6, &ip_addr, buf, sizeof(buf)));
 }
