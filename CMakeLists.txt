@@ -8,7 +8,7 @@ ADD_DEFINITIONS(-Os -ggdb -Wall -Werror --std=gnu99 -Wmissing-declarations -Wno-
 
 SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
 
-SET(SOURCES main.c dev.c commands.c qmi-message.c)
+SET(SOURCES main.c dev.c commands.c qmi-message.c mbim.c)
 
 FIND_PATH(ubox_include_dir libubox/usock.h)
 FIND_PATH(blobmsg_json_include_dir libubox/blobmsg_json.h)

@@ -27,6 +27,7 @@
 #include "uqmi.h"
 #include "qmi-errors.h"
 #include "qmi-errors.c"
+#include "mbim.h"
 
 bool cancel_all_requests = false;
 
@@ -36,10 +37,13 @@ static const uint8_t qmi_services[__QMI_SERVICE_LAST] = {
 };
 #undef __qmi_service
 
-static union {
-	char buf[512];
-	struct qmi_msg msg;
-} msgbuf;
+static struct {
+	struct mbim_command_message mbim;
+	union {
+		char buf[512];
+		struct qmi_msg msg;
+	} u;
+} __packed msgbuf;
 
 #ifdef DEBUG_PACKET
 void dump_packet(const char *prefix, void *ptr, int len)
@@ -124,20 +128,35 @@ static void qmi_notify_read(struct ustream *us, int bytes)
 	char *buf;
 	int len, msg_len;
 
+
 	while (1) {
 		buf = ustream_get_read_buf(us, &len);
 		if (!buf || !len)
 			return;
 
-		if (len < offsetof(struct qmi_msg, flags))
-			return;
+		dump_packet("Received packet", buf, len);
+		if (qmi->is_mbim) {
+			struct mbim_command_message *mbim = (void *) buf;
 
-		msg = (struct qmi_msg *) buf;
-		msg_len = le16_to_cpu(msg->qmux.len) + 1;
+			if (len < sizeof(*mbim))
+				return;
+			msg = (struct qmi_msg *) (buf + sizeof(*mbim));
+			msg_len = le32_to_cpu(mbim->header.length);
+			if (!is_mbim_qmi(mbim)) {
+				/* must consume other MBIM packets */
+				ustream_consume(us, msg_len);
+				return;
+			}
+		} else {
+			if (len < offsetof(struct qmi_msg, flags))
+				return;
+			msg = (struct qmi_msg *) buf;
+			msg_len = le16_to_cpu(msg->qmux.len) + 1;
+		}
+
 		if (len < msg_len)
 			return;
 
-		dump_packet("Received packet", msg, msg_len);
 		qmi_process_msg(qmi, msg);
 		ustream_consume(us, msg_len);
 	}
@@ -147,6 +166,7 @@ int qmi_request_start(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_m
 {
 	int len = qmi_complete_request_message(msg);
 	uint16_t tid;
+	char *buf = (void *) msg;
 
 	memset(req, 0, sizeof(*req));
 	req->ret = -1;
@@ -170,8 +190,14 @@ int qmi_request_start(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_m
 	req->pending = true;
 	list_add(&req->list, &qmi->req);
 
-	dump_packet("Send packet", msg, len);
-	ustream_write(&qmi->sf.stream, (void *) msg, len, false);
+	if (qmi->is_mbim) {
+		buf -= sizeof(struct mbim_command_message);
+		mbim_qmi_cmd((struct mbim_command_message *) buf, len, tid);
+		len += sizeof(struct mbim_command_message);
+	}
+
+	dump_packet("Send packet", buf, len);
+	ustream_write(&qmi->sf.stream, buf, len, false);
 	return 0;
 }
 
@@ -234,7 +260,7 @@ int qmi_service_connect(struct qmi_dev *qmi, QmiService svc, int client_id)
 	};
 	struct qmi_connect_request req;
 	int idx = qmi_get_service_idx(svc);
-	struct qmi_msg *msg = &msgbuf.msg;
+	struct qmi_msg *msg = &msgbuf.u.msg;
 
 	if (idx < 0)
 		return -1;
@@ -273,7 +299,7 @@ static void __qmi_service_disconnect(struct qmi_dev *qmi, int idx)
 		)
 	};
 	struct qmi_request req;
-	struct qmi_msg *msg = &msgbuf.msg;
+	struct qmi_msg *msg = &msgbuf.u.msg;
 
 	qmi->service_connected &= ~(1 << idx);
 	qmi->service_data[idx].client_id = -1;

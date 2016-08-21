@@ -87,6 +87,8 @@ struct qmi_dev {
 	uint32_t service_release_cid;
 
 	uint8_t ctl_tid;
+
+	bool is_mbim;
 };
 
 struct qmi_request {
