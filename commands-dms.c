@@ -408,3 +408,11 @@ cmd_dms_set_operating_mode_prepare(struct qmi_dev *qmi, struct qmi_request *req,
 
 	return uqmi_add_error("Invalid argument");
 }
+
+#define cmd_dms_set_fcc_authentication_cb no_cb
+static enum qmi_cmd_result
+cmd_dms_set_fcc_authentication_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
+{
+	qmi_set_dms_set_fcc_authentication_request(msg);
+	return QMI_CMD_REQUEST;
+}

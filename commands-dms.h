@@ -38,7 +38,8 @@
 	__uqmi_command(dms_get_imei, get-imei, no, QMI_SERVICE_DMS), \
 	__uqmi_command(dms_get_msisdn, get-msisdn, no, QMI_SERVICE_DMS), \
 	__uqmi_command(dms_set_operating_mode, set-device-operating-mode, required, QMI_SERVICE_DMS), \
-	__uqmi_command(dms_reset, reset-dms, no, QMI_SERVICE_DMS) \
+	__uqmi_command(dms_reset, reset-dms, no, QMI_SERVICE_DMS), \
+	__uqmi_command(dms_set_fcc_authentication, fcc-auth, no, QMI_SERVICE_DMS) \
 
 #define dms_helptext \
 		"  --get-capabilities:               List device capabilities\n" \
@@ -70,4 +71,5 @@
 		"                                    (modes: online, low_power, factory_test, offline\n" \
 		"                                     reset, shutting_down, persistent_low_power,\n" \
 		"                                     mode_only_low_power)\n" \
+		"  --fcc-auth:                       Set FCC authentication\n" \
 
