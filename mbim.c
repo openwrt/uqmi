@@ -39,12 +39,12 @@ bool is_mbim_qmi(struct mbim_command_message *msg)
 void mbim_qmi_cmd(struct mbim_command_message *msg, int len, uint16_t tid)
 {
 	msg->header.type = cpu_to_le32(MBIM_MESSAGE_TYPE_COMMAND);
-	msg->header.length = sizeof(*msg) + len;
+	msg->header.length = cpu_to_le32(sizeof(*msg) + len);
 	msg->header.transaction_id = cpu_to_le32(tid);
-	msg->fragment_header.total = 1;
+	msg->fragment_header.total = cpu_to_le32(1);
 	msg->fragment_header.current = 0;
 	memcpy(msg->service_id, qmiuuid, 16);
 	msg->command_id = cpu_to_le32(MBIM_CID_QMI_MSG);
 	msg->command_type = cpu_to_le32(MBIM_MESSAGE_COMMAND_TYPE_SET);
-	msg->buffer_length = len;
+	msg->buffer_length = cpu_to_le32(len);
 }
