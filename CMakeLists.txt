@@ -37,7 +37,7 @@ ENDIF()
 
 SET(service_headers)
 SET(service_sources)
-FOREACH(service ctl dms nas pds wds wms wda)
+FOREACH(service ctl dms nas pds wds wms wda uim)
 	ADD_CUSTOM_COMMAND(
 		OUTPUT  ${CMAKE_SOURCE_DIR}/qmi-message-${service}.h
 		COMMAND ${CMAKE_SOURCE_DIR}/data/gen-header.pl ${service}_ ${CMAKE_SOURCE_DIR}/data/qmi-service-${service}.json > ${CMAKE_SOURCE_DIR}/qmi-message-${service}.h
