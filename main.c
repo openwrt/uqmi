@@ -68,6 +68,7 @@ static int usage(const char *progname)
 		"                                    (implies --keep-client-id)\n"
 		wds_helptext
 		dms_helptext
+		uim_helptext
 		nas_helptext
 		wms_helptext
 		wda_helptext

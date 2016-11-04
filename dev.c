@@ -390,6 +390,7 @@ QmiService qmi_service_get_by_name(const char *str)
 		{ "wds", QMI_SERVICE_WDS },
 		{ "wms", QMI_SERVICE_WMS },
 		{ "wda", QMI_SERVICE_WDA },
+		{ "uim", QMI_SERVICE_UIM },
 	};
 	int i;
 
