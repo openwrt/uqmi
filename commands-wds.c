@@ -82,6 +82,32 @@ cmd_wds_set_autoconnect_prepare(struct qmi_dev *qmi, struct qmi_request *req, st
 	return QMI_CMD_DONE;
 }
 
+#define cmd_wds_set_ip_family_pref_cb no_cb
+static enum qmi_cmd_result
+cmd_wds_set_ip_family_pref_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
+{
+	static const struct {
+		const char *name;
+		const QmiWdsIpFamily mode;
+	} modes[] = {
+		{ "ipv4", QMI_WDS_IP_FAMILY_IPV4 },
+		{ "ipv6", QMI_WDS_IP_FAMILY_IPV6 },
+		{ "unspecified", QMI_WDS_IP_FAMILY_UNSPECIFIED },
+	};
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(modes); i++) {
+		if (strcasecmp(modes[i].name, arg) != 0)
+			continue;
+
+		qmi_set(&wds_sn_req, ip_family_preference, modes[i].mode);
+		return QMI_CMD_DONE;
+	}
+
+	uqmi_add_error("Invalid value (valid: ipv4, ipv6, unspecified)");
+	return QMI_CMD_EXIT;
+}
+
 static void
 cmd_wds_start_network_cb(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg)
 {
