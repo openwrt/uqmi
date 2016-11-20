@@ -364,7 +364,13 @@ cmd_nas_network_scan_cb(struct qmi_dev *qmi, struct qmi_request *req, struct qmi
 static enum qmi_cmd_result
 cmd_nas_network_scan_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
 {
-	struct qmi_nas_network_scan_request sreq = {};
+	struct qmi_nas_network_scan_request sreq = {
+		QMI_INIT(network_type,
+	             QMI_NAS_NETWORK_SCAN_TYPE_GSM |
+	             QMI_NAS_NETWORK_SCAN_TYPE_UMTS |
+	             QMI_NAS_NETWORK_SCAN_TYPE_LTE |
+	             QMI_NAS_NETWORK_SCAN_TYPE_TD_SCDMA),
+	};
 
 	qmi_set_nas_network_scan_request(msg, &sreq);
 	return QMI_CMD_REQUEST;
