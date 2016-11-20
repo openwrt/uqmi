@@ -30,6 +30,14 @@ static struct qmi_wds_start_network_request wds_sn_req = {
 };
 static struct qmi_wds_stop_network_request wds_stn_req;
 
+#define cmd_wds_set_apn_cb no_cb
+static enum qmi_cmd_result
+cmd_wds_set_apn_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
+{
+	qmi_set_ptr(&wds_sn_req, apn, arg);
+	return QMI_CMD_DONE;
+}
+
 #define cmd_wds_set_auth_cb no_cb
 static enum qmi_cmd_result
 cmd_wds_set_auth_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
@@ -121,7 +129,6 @@ cmd_wds_start_network_cb(struct qmi_dev *qmi, struct qmi_request *req, struct qm
 static enum qmi_cmd_result
 cmd_wds_start_network_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
 {
-	qmi_set_ptr(&wds_sn_req, apn, arg);
 	qmi_set_wds_start_network_request(msg, &wds_sn_req);
 	return QMI_CMD_REQUEST;
 }
