@@ -116,6 +116,16 @@ cmd_wds_set_ip_family_pref_prepare(struct qmi_dev *qmi, struct qmi_request *req,
 	return QMI_CMD_EXIT;
 }
 
+#define cmd_wds_set_profile_cb no_cb
+static enum qmi_cmd_result
+cmd_wds_set_profile_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
+{
+	uint32_t idx = strtoul(arg, NULL, 10);
+
+	qmi_set(&wds_sn_req, profile_index_3gpp, idx);
+	return QMI_CMD_DONE;
+}
+
 static void
 cmd_wds_start_network_cb(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg)
 {
