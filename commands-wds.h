@@ -43,6 +43,6 @@
 		"  --stop-network <pdh>:             Stop network connection (use with option below)\n" \
 		"    --autoconnect:                  Disable automatic connect/reconnect\n" \
 		"  --get-data-status:                Get current data access status\n" \
-		"  --set-autoconnect <val>:          Get current data access status (disabled, enabled, paused)\n" \
+		"  --set-autoconnect <val>:          Set automatic connect/reconnect (disabled, enabled, paused)\n" \
 		"  --get-current-settings:           Get current connection settings\n" \
 
