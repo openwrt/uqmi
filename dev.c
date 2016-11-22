@@ -37,14 +37,6 @@ static const uint8_t qmi_services[__QMI_SERVICE_LAST] = {
 };
 #undef __qmi_service
 
-static struct {
-	struct mbim_command_message mbim;
-	union {
-		char buf[512];
-		struct qmi_msg msg;
-	} u;
-} __packed msgbuf;
-
 #ifdef DEBUG_PACKET
 void dump_packet(const char *prefix, void *ptr, int len)
 {
@@ -162,11 +154,12 @@ static void qmi_notify_read(struct ustream *us, int bytes)
 	}
 }
 
-int qmi_request_start(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, request_cb cb)
+int qmi_request_start(struct qmi_dev *qmi, struct qmi_request *req, request_cb cb)
 {
+	struct qmi_msg *msg = qmi->buf;
 	int len = qmi_complete_request_message(msg);
 	uint16_t tid;
-	char *buf = (void *) msg;
+	void *buf = (void *) qmi->buf;
 
 	memset(req, 0, sizeof(*req));
 	req->ret = -1;
@@ -260,7 +253,7 @@ int qmi_service_connect(struct qmi_dev *qmi, QmiService svc, int client_id)
 	};
 	struct qmi_connect_request req;
 	int idx = qmi_get_service_idx(svc);
-	struct qmi_msg *msg = &msgbuf.u.msg;
+	struct qmi_msg *msg = qmi->buf;
 
 	if (idx < 0)
 		return -1;
@@ -270,7 +263,7 @@ int qmi_service_connect(struct qmi_dev *qmi, QmiService svc, int client_id)
 
 	if (client_id < 0) {
 		qmi_set_ctl_allocate_cid_request(msg, &creq);
-		qmi_request_start(qmi, &req.req, msg, qmi_connect_service_cb);
+		qmi_request_start(qmi, &req.req, qmi_connect_service_cb);
 		qmi_request_wait(qmi, &req.req);
 
 		if (req.req.ret)
@@ -299,14 +292,14 @@ static void __qmi_service_disconnect(struct qmi_dev *qmi, int idx)
 		)
 	};
 	struct qmi_request req;
-	struct qmi_msg *msg = &msgbuf.u.msg;
+	struct qmi_msg *msg = qmi->buf;
 
 	qmi->service_connected &= ~(1 << idx);
 	qmi->service_data[idx].client_id = -1;
 	qmi->service_data[idx].tid = 0;
 
 	qmi_set_ctl_release_cid_request(msg, &creq);
-	qmi_request_start(qmi, &req, msg, NULL);
+	qmi_request_start(qmi, &req, NULL);
 	qmi_request_wait(qmi, &req);
 }
 
@@ -347,6 +340,13 @@ int qmi_service_get_client_id(struct qmi_dev *qmi, QmiService svc)
 
 int qmi_device_open(struct qmi_dev *qmi, const char *path)
 {
+	static struct {
+		struct mbim_command_message mbim;
+		union {
+			char buf[2048];
+			struct qmi_msg msg;
+		} u;
+	} __packed msgbuf;
 	struct ustream *us = &qmi->sf.stream;
 	int fd;
 
@@ -360,6 +360,7 @@ int qmi_device_open(struct qmi_dev *qmi, const char *path)
 	ustream_fd_init(&qmi->sf, fd);
 	INIT_LIST_HEAD(&qmi->req);
 	qmi->ctl_tid = 1;
+	qmi->buf = msgbuf.u.buf;
 
 	return 0;
 }

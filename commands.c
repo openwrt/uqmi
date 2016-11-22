@@ -205,8 +205,8 @@ static void uqmi_print_result(struct blob_attr *data)
 
 static bool __uqmi_run_commands(struct qmi_dev *qmi, bool option)
 {
-	static char buf[2048];
 	static struct qmi_request req;
+	char *buf = qmi->buf;
 	int i;
 
 	for (i = 0; i < n_cmds; i++) {
@@ -227,7 +227,7 @@ static bool __uqmi_run_commands(struct qmi_dev *qmi, bool option)
 		}
 
 		if (res == QMI_CMD_REQUEST) {
-			qmi_request_start(qmi, &req, (void *) buf, cmds[i].handler->cb);
+			qmi_request_start(qmi, &req, cmds[i].handler->cb);
 			req.no_error_cb = true;
 			if (qmi_request_wait(qmi, &req)) {
 				uqmi_add_error(qmi_get_error_str(req.ret));
