@@ -64,6 +64,14 @@ cmd_version_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg
 	return QMI_CMD_REQUEST;
 }
 
+#define cmd_sync_cb no_cb
+static enum qmi_cmd_result
+cmd_sync_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
+{
+	qmi_set_ctl_sync_request(msg);
+	return QMI_CMD_DONE;
+}
+
 #define cmd_get_client_id_cb no_cb
 static enum qmi_cmd_result
 cmd_get_client_id_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)

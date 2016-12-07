@@ -55,6 +55,7 @@ struct uqmi_cmd {
 
 #define __uqmi_commands \
 	__uqmi_command(version, get-versions, no, QMI_SERVICE_CTL), \
+	__uqmi_command(sync, sync, no, QMI_SERVICE_CTL), \
 	__uqmi_command(set_client_id, set-client-id, required, CMD_TYPE_OPTION), \
 	__uqmi_command(get_client_id, get-client-id, required, QMI_SERVICE_CTL), \
 	__uqmi_command(ctl_set_data_format, set-data-format, required, QMI_SERVICE_CTL), \

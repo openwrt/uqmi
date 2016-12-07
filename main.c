@@ -66,6 +66,7 @@ static int usage(const char *progname)
 		"                                    (implies --keep-client-id)\n"
 		"  --get-client-id <name>:           Connect and get Client ID for service <name>\n"
 		"                                    (implies --keep-client-id)\n"
+		"  --sync:                           Release all Client IDs\n"
 		wds_helptext
 		dms_helptext
 		uim_helptext
