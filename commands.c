@@ -193,7 +193,7 @@ void uqmi_add_command(char *arg, int cmd)
 
 	cmds = realloc(cmds, n_cmds * sizeof(*cmds));
 	cmds[idx].handler = &uqmi_cmd_handler[cmd];
-	cmds[idx].arg = optarg;
+	cmds[idx].arg = arg;
 }
 
 static void uqmi_print_result(struct blob_attr *data)
