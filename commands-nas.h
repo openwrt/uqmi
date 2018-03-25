@@ -31,7 +31,11 @@
 	__uqmi_command(nas_get_signal_info, get-signal-info, no, QMI_SERVICE_NAS), \
 	__uqmi_command(nas_get_serving_system, get-serving-system, no, QMI_SERVICE_NAS), \
 	__uqmi_command(nas_set_network_preference, set-network-preference, required, CMD_TYPE_OPTION), \
-	__uqmi_command(nas_set_roaming, set-network-roaming, required, CMD_TYPE_OPTION) \
+	__uqmi_command(nas_set_roaming, set-network-roaming, required, CMD_TYPE_OPTION), \
+	__uqmi_command(nas_get_system_info, get-system-info, no, QMI_SERVICE_NAS), \
+	__uqmi_command(nas_get_lte_cphy_ca_info, get-lte-cphy-ca-info, no, QMI_SERVICE_NAS), \
+	__uqmi_command(nas_get_cell_location_info, get-cell-location-info, no, QMI_SERVICE_NAS), \
+	__uqmi_command(nas_get_tx_rx_info, get-tx-rx-info, required, QMI_SERVICE_NAS) \
 
 #define nas_helptext \
 		"  --set-network-modes <modes>:      Set usable network modes (Syntax: <mode1>[,<mode2>,...])\n" \
@@ -48,4 +52,8 @@
 		"  --get-plmn:                       Get preferred network selection info\n" \
 		"  --get-signal-info:                Get signal strength info\n" \
 		"  --get-serving-system:             Get serving system info\n" \
+		"  --get-system-info:                Get system info\n" \
+		"  --get-lte-cphy-ca-info:           Get LTE Cphy CA Info\n" \
+		"  --get-cell-location-info:         Get Cell Location Info\n" \
+		"  --get-tx-rx-info <radio>:         Get TX/RX Info (gsm, umts, lte)\n" \
 
