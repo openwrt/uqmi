@@ -293,6 +293,37 @@ cmd_nas_get_serving_system_prepare(struct qmi_dev *qmi, struct qmi_request *req,
 }
 
 static void
+cmd_nas_get_plmn_cb(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg)
+{
+	struct qmi_nas_get_system_selection_preference_response res;
+	static const char *modes[] = {
+		[QMI_NAS_NETWORK_SELECTION_PREFERENCE_AUTOMATIC] = "automatic",
+		[QMI_NAS_NETWORK_SELECTION_PREFERENCE_MANUAL] = "manual",
+	};
+	void *c;
+
+	qmi_parse_nas_get_system_selection_preference_response(msg, &res);
+
+	c = blobmsg_open_table(&status, NULL);
+	if (res.set.network_selection_preference) {
+		blobmsg_add_string(&status, "mode", modes[res.data.network_selection_preference]);
+	}
+	if (res.set.manual_network_selection) {
+		blobmsg_add_u32(&status, "mcc", res.data.manual_network_selection.mcc);
+		blobmsg_add_u32(&status, "mnc", res.data.manual_network_selection.mnc);
+	}
+
+	blobmsg_close_table(&status, c);
+}
+
+static enum qmi_cmd_result
+cmd_nas_get_plmn_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
+{
+	qmi_set_nas_get_system_selection_preference_request(msg);
+	return QMI_CMD_REQUEST;
+}
+
+static void
 cmd_nas_network_scan_cb(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg)
 {
 	static struct qmi_nas_network_scan_response res;
