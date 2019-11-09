@@ -45,6 +45,7 @@ static const struct option uqmi_getopt[] = {
 	{ "release-client-id", required_argument, NULL, 'r' },
 	{ "mbim",  no_argument, NULL, 'm' },
 	{ "timeout", required_argument, NULL, 't' },
+	{ "proxy",  no_argument, NULL, 'p' },
 	{ NULL, 0, NULL, 0 }
 };
 #undef __uqmi_command
@@ -59,6 +60,7 @@ static int usage(const char *progname)
 		"  --release-client-id <name>:       Release Client ID after exiting\n"
 		"  --mbim, -m                        NAME is an MBIM device with EXT_QMUX support\n"
 		"  --timeout, -t                     response timeout in msecs\n"
+		"  --proxy, -p                       Connect via qmi-proxy or mbim-proxy\n"
 		"\n"
 		"Services:                           dms, nas, pds, wds, wms\n"
 		"\n"
@@ -117,12 +119,13 @@ int main(int argc, char **argv)
 {
 	static struct qmi_dev dev;
 	int ch, ret;
+	bool use_proxy = false;
 
 	uloop_init();
 	signal(SIGINT, handle_exit_signal);
 	signal(SIGTERM, handle_exit_signal);
 
-	while ((ch = getopt_long(argc, argv, "d:k:smt:", uqmi_getopt, NULL)) != -1) {
+	while ((ch = getopt_long(argc, argv, "d:k:smt:p", uqmi_getopt, NULL)) != -1) {
 		int cmd_opt = CMD_OPT(ch);
 
 		if (ch < 0 && cmd_opt >= 0 && cmd_opt < __UQMI_COMMAND_LAST) {
@@ -149,6 +152,9 @@ int main(int argc, char **argv)
 		case 't':
 			uloop_timeout_set(&request_timeout, atol(optarg));
 			break;
+		case 'p':
+			use_proxy = true;
+			break;
 		default:
 			return usage(argv[0]);
 		}
@@ -159,7 +165,12 @@ int main(int argc, char **argv)
 		return usage(argv[0]);
 	}
 
-	if (qmi_device_open(&dev, device)) {
+	if (use_proxy)
+		ret = qmi_device_proxy_open(&dev, device);
+	else
+		ret = qmi_device_open(&dev, device);
+
+	if (ret) {
 		fprintf(stderr, "Failed to open device\n");
 		return 2;
 	}
