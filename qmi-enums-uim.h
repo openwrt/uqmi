@@ -18,6 +18,7 @@
  * Boston, MA 02110-1301 USA.
  *
  * Copyright (C) 2012 Google Inc.
+ * Copyright (C) 2012-2017 Aleksander Morgado <aleksander@aleksander.es>
  */
 
 #ifndef _LIBQMI_GLIB_QMI_ENUMS_UIM_H_
@@ -25,11 +26,31 @@
 
 /**
  * SECTION: qmi-enums-uim
- * @title: UIM enumerations and flags
  *
  * This section defines enumerations and flags used in the UIM service
  * interface.
  */
+
+/*****************************************************************************/
+/* Helper enums for the 'QMI UIM Indication Register' indication */
+
+/**
+ * QmiUimEventRegistrationFlag:
+ * @QMI_UIM_EVENT_REGISTRATION_FLAG_CARD_STATUS: Card status.
+ * @QMI_UIM_EVENT_REGISTRATION_FLAG_SAP_CONNECTION: SAP connection.
+ * @QMI_UIM_EVENT_REGISTRATION_FLAG_EXTENDED_CARD_STATUS: Extended card status.
+ * @QMI_UIM_EVENT_REGISTRATION_FLAG_PHYSICAL_SLOT_STATUS: Physical slot status. Since 1.26.
+ *
+ * Flags to use to register to UIM indications.
+ *
+ * Since: 1.22.4
+ */
+typedef enum { /*< since=1.22.4 >*/
+    QMI_UIM_EVENT_REGISTRATION_FLAG_CARD_STATUS          = 1 << 0,
+    QMI_UIM_EVENT_REGISTRATION_FLAG_SAP_CONNECTION       = 1 << 1,
+    QMI_UIM_EVENT_REGISTRATION_FLAG_EXTENDED_CARD_STATUS = 1 << 2,
+    QMI_UIM_EVENT_REGISTRATION_FLAG_PHYSICAL_SLOT_STATUS = 1 << 4,
+} QmiUimEventRegistrationFlag;
 
 /*****************************************************************************/
 /* Helper enums for the 'QMI UIM Read Record' request/response */
@@ -46,20 +67,52 @@
  * @QMI_UIM_SESSION_TYPE_CARD_SLOT_2: Card on slot 2.
  * @QMI_UIM_SESSION_TYPE_LOGICAL_CHANNEL_SLOT_1: Logical channel on slot 1.
  * @QMI_UIM_SESSION_TYPE_LOGICAL_CHANNEL_SLOT_2: Logical channel on slot 2.
+ * @QMI_UIM_SESSION_TYPE_TERTIARY_GW_PROVISIONING: Tertiary GSM/WCDMA provisioning. Since 1.28.
+ * @QMI_UIM_SESSION_TYPE_TERTIARY_1X_PROVISIONING: Tertiary CDMA1x provisioning. Since 1.28.
+ * @QMI_UIM_SESSION_TYPE_QUATERNARY_GW_PROVISIONING: Quaternary GSM/WCDMA provisioning. Since 1.28.
+ * @QMI_UIM_SESSION_TYPE_QUATERNARY_1X_PROVISIONING: Quaternary CDMA1x provisioning. Since 1.28.
+ * @QMI_UIM_SESSION_TYPE_QUINARY_GW_PROVISIONING: Quinary GSM/WCDMA provisioning. Since 1.28.
+ * @QMI_UIM_SESSION_TYPE_QUINARY_1X_PROVISIONING: Quinary CDMA1x provisioning. Since 1.28.
+ * @QMI_UIM_SESSION_TYPE_NONPROVISIONING_SLOT_3: Nonprovisioning on slot 3. Since 1.28.
+ * @QMI_UIM_SESSION_TYPE_NONPROVISIONING_SLOT_4: Nonprovisioning on slot 4. Since 1.28.
+ * @QMI_UIM_SESSION_TYPE_NONPROVISIONING_SLOT_5: Nonprovisioning on slot 5. Since 1.28.
+ * @QMI_UIM_SESSION_TYPE_CARD_SLOT_3: Card on slot 3. Since 1.28.
+ * @QMI_UIM_SESSION_TYPE_CARD_SLOT_4: Card on slot 4. Since 1.28.
+ * @QMI_UIM_SESSION_TYPE_CARD_SLOT_5: Card on slot 5. Since 1.28.
+ * @QMI_UIM_SESSION_TYPE_LOGICAL_CHANNEL_SLOT_3: Logical channel on slot 3. Since 1.28.
+ * @QMI_UIM_SESSION_TYPE_LOGICAL_CHANNEL_SLOT_4: Logical channel on slot 4. Since 1.28.
+ * @QMI_UIM_SESSION_TYPE_LOGICAL_CHANNEL_SLOT_5: Logical channel on slot 5. Since 1.28.
  *
  * Type of UIM session.
+ *
+ * Since: 1.6
  */
-typedef enum {
-    QMI_UIM_SESSION_TYPE_PRIMARY_GW_PROVISIONING   = 0,
-    QMI_UIM_SESSION_TYPE_PRIMARY_1X_PROVISIONING   = 1,
-    QMI_UIM_SESSION_TYPE_SECONDARY_GW_PROVISIONING = 2,
-    QMI_UIM_SESSION_TYPE_SECONDARY_1X_PROVISIONING = 3,
-    QMI_UIM_SESSION_TYPE_NONPROVISIONING_SLOT_1    = 4,
-    QMI_UIM_SESSION_TYPE_NONPROVISIONING_SLOT_2    = 5,
-    QMI_UIM_SESSION_TYPE_CARD_SLOT_1               = 6,
-    QMI_UIM_SESSION_TYPE_CARD_SLOT_2               = 7,
-    QMI_UIM_SESSION_TYPE_LOGICAL_CHANNEL_SLOT_1    = 8,
-    QMI_UIM_SESSION_TYPE_LOGICAL_CHANNEL_SLOT_2    = 9
+typedef enum { /*< since=1.6 >*/
+    QMI_UIM_SESSION_TYPE_PRIMARY_GW_PROVISIONING    = 0,
+    QMI_UIM_SESSION_TYPE_PRIMARY_1X_PROVISIONING    = 1,
+    QMI_UIM_SESSION_TYPE_SECONDARY_GW_PROVISIONING  = 2,
+    QMI_UIM_SESSION_TYPE_SECONDARY_1X_PROVISIONING  = 3,
+    QMI_UIM_SESSION_TYPE_NONPROVISIONING_SLOT_1     = 4,
+    QMI_UIM_SESSION_TYPE_NONPROVISIONING_SLOT_2     = 5,
+    QMI_UIM_SESSION_TYPE_CARD_SLOT_1                = 6,
+    QMI_UIM_SESSION_TYPE_CARD_SLOT_2                = 7,
+    QMI_UIM_SESSION_TYPE_LOGICAL_CHANNEL_SLOT_1     = 8,
+    QMI_UIM_SESSION_TYPE_LOGICAL_CHANNEL_SLOT_2     = 9,
+    QMI_UIM_SESSION_TYPE_TERTIARY_GW_PROVISIONING   = 10,
+    QMI_UIM_SESSION_TYPE_TERTIARY_1X_PROVISIONING   = 11,
+    QMI_UIM_SESSION_TYPE_QUATERNARY_GW_PROVISIONING = 12,
+    QMI_UIM_SESSION_TYPE_QUATERNARY_1X_PROVISIONING = 13,
+    QMI_UIM_SESSION_TYPE_QUINARY_GW_PROVISIONING    = 14,
+    QMI_UIM_SESSION_TYPE_QUINARY_1X_PROVISIONING    = 15,
+    QMI_UIM_SESSION_TYPE_NONPROVISIONING_SLOT_3     = 16,
+    QMI_UIM_SESSION_TYPE_NONPROVISIONING_SLOT_4     = 17,
+    QMI_UIM_SESSION_TYPE_NONPROVISIONING_SLOT_5     = 18,
+    QMI_UIM_SESSION_TYPE_CARD_SLOT_3                = 19,
+    QMI_UIM_SESSION_TYPE_CARD_SLOT_4                = 20,
+    QMI_UIM_SESSION_TYPE_CARD_SLOT_5                = 21,
+    QMI_UIM_SESSION_TYPE_LOGICAL_CHANNEL_SLOT_3     = 22,
+    QMI_UIM_SESSION_TYPE_LOGICAL_CHANNEL_SLOT_4     = 23,
+    QMI_UIM_SESSION_TYPE_LOGICAL_CHANNEL_SLOT_5     = 24,
 } QmiUimSessionType;
 
 /*****************************************************************************/
@@ -74,8 +127,10 @@ typedef enum {
  * @QMI_UIM_FILE_TYPE_MASTER_FILE: Master file.
  *
  * Type of UIM file.
+ *
+ * Since: 1.6
  */
-typedef enum {
+typedef enum { /*< since=1.6 >*/
     QMI_UIM_FILE_TYPE_TRANSPARENT    = 0,
     QMI_UIM_FILE_TYPE_CYCLIC         = 1,
     QMI_UIM_FILE_TYPE_LINEAR_FIXED   = 2,
@@ -92,8 +147,10 @@ typedef enum {
  * @QMI_UIM_SECURITY_ATTRIBUTE_LOGIC_SINGLE: Single.
  *
  * Logic applicable to security attributes.
+ *
+ * Since: 1.6
  */
-typedef enum {
+typedef enum { /*< since=1.6 >*/
     QMI_UIM_SECURITY_ATTRIBUTE_LOGIC_ALWAYS = 0,
     QMI_UIM_SECURITY_ATTRIBUTE_LOGIC_NEVER  = 1,
     QMI_UIM_SECURITY_ATTRIBUTE_LOGIC_AND    = 2,
@@ -109,8 +166,10 @@ typedef enum {
  * @QMI_UIM_SECURITY_ATTRIBUTE_ADM: ADM.
  *
  * Security Attributes.
+ *
+ * Since: 1.6
  */
-typedef enum {
+typedef enum { /*< since=1.6 >*/
     QMI_UIM_SECURITY_ATTRIBUTE_PIN1 = 1 << 0,
     QMI_UIM_SECURITY_ATTRIBUTE_PIN2 = 1 << 1,
     QMI_UIM_SECURITY_ATTRIBUTE_UPIN = 1 << 2,
@@ -129,8 +188,10 @@ typedef enum {
  * @QMI_UIM_PIN_ID_HIDDEN_KEY: Hidden key.
  *
  * PIN ID.
+ *
+ * Since: 1.14
  */
-typedef enum {
+typedef enum { /*< since=1.14 >*/
     QMI_UIM_PIN_ID_UNKNOWN    = 0,
     QMI_UIM_PIN_ID_PIN1       = 1,
     QMI_UIM_PIN_ID_PIN2       = 2,
@@ -148,8 +209,10 @@ typedef enum {
  * @QMI_UIM_CARD_STATE_ERROR: Error.
  *
  * State of the card.
+ *
+ * Since: 1.10
  */
-typedef enum {
+typedef enum { /*< since=1.10 >*/
     QMI_UIM_CARD_STATE_ABSENT  = 0,
     QMI_UIM_CARD_STATE_PRESENT = 1,
     QMI_UIM_CARD_STATE_ERROR   = 2
@@ -165,8 +228,10 @@ typedef enum {
  * @QMI_UIM_PIN_STATE_PERMANENTLY_BLOCKED: Permanently Blocked.
  *
  * The PIN state.
+ *
+ * Since: 1.10
  */
-typedef enum {
+typedef enum { /*< since=1.10 >*/
     QMI_UIM_PIN_STATE_NOT_INITIALIZED      = 0,
     QMI_UIM_PIN_STATE_ENABLED_NOT_VERIFIED = 1,
     QMI_UIM_PIN_STATE_ENABLED_VERIFIED     = 2,
@@ -187,8 +252,10 @@ typedef enum {
  * @QMI_UIM_CARD_ERROR_TECHNICAL: Technical problem.
  *
  * Card error.
+ *
+ * Since: 1.10
  */
-typedef enum {
+typedef enum { /*< since=1.10 >*/
     QMI_UIM_CARD_ERROR_UNKNOWN          = 0,
     QMI_UIM_CARD_ERROR_POWER_DOWN       = 1,
     QMI_UIM_CARD_ERROR_POLL             = 2,
@@ -209,8 +276,10 @@ typedef enum {
  * @QMI_UIM_CARD_APPLICATION_TYPE_ISIM: ISIM.
  *
  * Card application type.
+ *
+ * Since: 1.10
  */
-typedef enum {
+typedef enum { /*< since=1.10 >*/
     QMI_UIM_CARD_APPLICATION_TYPE_UNKNOWN = 0,
     QMI_UIM_CARD_APPLICATION_TYPE_SIM     = 1,
     QMI_UIM_CARD_APPLICATION_TYPE_USIM    = 2,
@@ -231,8 +300,10 @@ typedef enum {
  * @QMI_UIM_CARD_APPLICATION_STATE_READY: Ready
  *
  * Card application state.
+ *
+ * Since: 1.10
  */
-typedef enum {
+typedef enum { /*< since=1.10 >*/
     QMI_UIM_CARD_APPLICATION_STATE_UNKNOWN                     = 0,
     QMI_UIM_CARD_APPLICATION_STATE_DETECTED                    = 1,
     QMI_UIM_CARD_APPLICATION_STATE_PIN1_OR_UPIN_PIN_REQUIRED   = 2,
@@ -253,8 +324,10 @@ typedef enum {
  * @QMI_UIM_CARD_APPLICATION_PERSONALIZATION_STATE_PERMANENTLY_BLOCKED: Permanently blocked-
  *
  * Card application personalization state.
+ *
+ * Since: 1.10
  */
-typedef enum {
+typedef enum { /*< since=1.10 >*/
     QMI_UIM_CARD_APPLICATION_PERSONALIZATION_STATE_UNKNOWN             = 0,
     QMI_UIM_CARD_APPLICATION_PERSONALIZATION_STATE_IN_PROGRESS         = 1,
     QMI_UIM_CARD_APPLICATION_PERSONALIZATION_STATE_READY               = 2,
@@ -279,8 +352,10 @@ typedef enum {
  * @QMI_UIM_CARD_APPLICATION_PERSONALIZATION_FEATURE_UNKNOWN: Unknown.
  *
  * Card application personalization feature, when a code is required.
+ *
+ * Since: 1.10
  */
-typedef enum {
+typedef enum { /*< since=1.10 >*/
     QMI_UIM_CARD_APPLICATION_PERSONALIZATION_FEATURE_GW_NETWORK          = 0,
     QMI_UIM_CARD_APPLICATION_PERSONALIZATION_FEATURE_GW_NETWORK_SUBSET   = 1,
     QMI_UIM_CARD_APPLICATION_PERSONALIZATION_FEATURE_GW_SERVICE_PROVIDER = 2,
@@ -294,5 +369,130 @@ typedef enum {
     QMI_UIM_CARD_APPLICATION_PERSONALIZATION_FEATURE_1X_RUIM             = 10,
     QMI_UIM_CARD_APPLICATION_PERSONALIZATION_FEATURE_UNKNOWN             = 11
 } QmiUimCardApplicationPersonalizationFeature;
+
+/*****************************************************************************/
+/* Helper enums for the 'QMI UIM Refresh' indication */
+
+/**
+ * QmiUimRefreshStage:
+ * @QMI_UIM_REFRESH_STAGE_WAIT_FOR_OK: Waiting for REFRESH OK message.
+ * @QMI_UIM_REFRESH_STAGE_START: Refresh started.
+ * @QMI_UIM_REFRESH_STAGE_END_WITH_SUCCESS: Refresh completed successfully.
+ * @QMI_UIM_REFRESH_STAGE_END_WITH_FAILURE: Refresh has failed.
+ *
+ * Current stage of the refresh procedure.
+ *
+ * Since: 1.28
+ */
+typedef enum { /*< since=1.28 >*/
+    QMI_UIM_REFRESH_STAGE_WAIT_FOR_OK      = 0,
+    QMI_UIM_REFRESH_STAGE_START            = 1,
+    QMI_UIM_REFRESH_STAGE_END_WITH_SUCCESS = 2,
+    QMI_UIM_REFRESH_STAGE_END_WITH_FAILURE = 3
+} QmiUimRefreshStage;
+
+/**
+ * QmiUimRefreshMode:
+ * @QMI_UIM_REFRESH_MODE_RESET: Reset.
+ * @QMI_UIM_REFRESH_MODE_INIT: Init.
+ * @QMI_UIM_REFRESH_MODE_INIT_FCN: Init & FCN.
+ * @QMI_UIM_REFRESH_MODE_FCN: FCN.
+ * @QMI_UIM_REFRESH_MODE_INIT_FULL_FCN: Init & full FCN.
+ * @QMI_UIM_REFRESH_MODE_APP_RESET: Application reset.
+ * @QMI_UIM_REFRESH_MODE_3G_RESET: 3G session reset.
+ *
+ * Refresh mode
+ *
+ * Since: 1.28
+ */
+typedef enum { /*< since=1.28 >*/
+    QMI_UIM_REFRESH_MODE_RESET         = 0,
+    QMI_UIM_REFRESH_MODE_INIT          = 1,
+    QMI_UIM_REFRESH_MODE_INIT_FCN      = 2,
+    QMI_UIM_REFRESH_MODE_FCN           = 3,
+    QMI_UIM_REFRESH_MODE_INIT_FULL_FCN = 4,
+    QMI_UIM_REFRESH_MODE_APP_RESET     = 5,
+    QMI_UIM_REFRESH_MODE_3G_RESET      = 6
+} QmiUimRefreshMode;
+
+/*****************************************************************************/
+/* Helper enums for the 'QMI UIM Get Slot Status' request/response */
+
+/**
+ * QmiUimPhysicalCardState:
+ * @QMI_UIM_PHYSICAL_CARD_STATE_UNKNOWN: Unknown.
+ * @QMI_UIM_PHYSICAL_CARD_STATE_ABSENT: Absent.
+ * @QMI_UIM_PHYSICAL_CARD_STATE_PRESENT: Present.
+ *
+ * State of the physical card.
+ *
+ * Since: 1.26
+ */
+typedef enum { /*< since=1.26 >*/
+    QMI_UIM_PHYSICAL_CARD_STATE_UNKNOWN = 0,
+    QMI_UIM_PHYSICAL_CARD_STATE_ABSENT  = 1,
+    QMI_UIM_PHYSICAL_CARD_STATE_PRESENT = 2,
+} QmiUimPhysicalCardState;
+
+/**
+ * QmiUimSlotState:
+ * @QMI_UIM_SLOT_STATE_INACTIVE: Inactive.
+ * @QMI_UIM_SLOT_STATE_ACTIVE: Active.
+ *
+ * State of the slot.
+ *
+ * Since: 1.26
+ */
+typedef enum { /*< since=1.26 >*/
+    QMI_UIM_SLOT_STATE_INACTIVE = 0,
+    QMI_UIM_SLOT_STATE_ACTIVE   = 1,
+} QmiUimSlotState;
+
+/**
+ * QmiUimCardProtocol:
+ * @QMI_UIM_CARD_PROTOCOL_UNKNOWN: Unknown.
+ * @QMI_UIM_CARD_PROTOCOL_ICC: ICC protocol.
+ * @QMI_UIM_CARD_PROTOCOL_UICC: UICC protocol.
+ *
+ * Protocol for the card.
+ *
+ * Since: 1.26
+ */
+typedef enum { /*< since=1.26 >*/
+    QMI_UIM_CARD_PROTOCOL_UNKNOWN = 0,
+    QMI_UIM_CARD_PROTOCOL_ICC     = 1,
+    QMI_UIM_CARD_PROTOCOL_UICC    = 2,
+} QmiUimCardProtocol;
+
+/**
+ * QmiUimConfiguration:
+ * @QMI_UIM_CONFIGURATION_AUTOMATIC_SELECTION: Automatic selection.
+ * @QMI_UIM_CONFIGURATION_PERSONALIZATION_STATUS: Personalization status.
+ * @QMI_UIM_CONFIGURATION_HALT_SUBSCRIPTION: Halt publication of subscription.
+ *
+ * Requested configurations. If none explicitly requested, all configuration
+ * items are returned.
+ *
+ * Since: 1.30
+ */
+typedef enum { /*< since=1.30 >*/
+    QMI_UIM_CONFIGURATION_AUTOMATIC_SELECTION    = 1 << 0,
+    QMI_UIM_CONFIGURATION_PERSONALIZATION_STATUS = 1 << 1,
+    QMI_UIM_CONFIGURATION_HALT_SUBSCRIPTION      = 1 << 2,
+} QmiUimConfiguration;
+
+/**
+ * QmiUimDepersonalizationOperation:
+ * @QMI_UIM_DEPERSONALIZATION_OPERATION_DEACTIVATE: Deactivate personalization
+ * @QMI_UIM_DEPERSONALIZATION_OPERATION_UNBLOCK: Unblock personalization
+ *
+ * Depersonalization operation to perform.
+ *
+ * Since: 1.30
+ */
+typedef enum { /*< since=1.30 >*/
+    QMI_UIM_DEPERSONALIZATION_OPERATION_DEACTIVATE = 0,
+    QMI_UIM_DEPERSONALIZATION_OPERATION_UNBLOCK    = 1,
+} QmiUimDepersonalizationOperation;
 
 #endif /* _LIBQMI_GLIB_QMI_ENUMS_UIM_H_ */

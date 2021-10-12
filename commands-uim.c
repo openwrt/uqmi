@@ -24,9 +24,9 @@ static enum qmi_cmd_result
 cmd_uim_verify_pin1_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
 {
 	struct qmi_uim_verify_pin_request data = {
-		QMI_INIT_SEQUENCE(session_information,
+		QMI_INIT_SEQUENCE(session,
 			.session_type = QMI_UIM_SESSION_TYPE_CARD_SLOT_1,
-			""
+			.application_identifier_n = 0
 		),
 		QMI_INIT_SEQUENCE(info,
 			.pin_id = QMI_UIM_PIN_ID_PIN1,
@@ -42,9 +42,9 @@ static enum qmi_cmd_result
 cmd_uim_verify_pin2_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
 {
 	struct qmi_uim_verify_pin_request data = {
-		QMI_INIT_SEQUENCE(session_information,
+		QMI_INIT_SEQUENCE(session,
 			.session_type = QMI_UIM_SESSION_TYPE_CARD_SLOT_1,
-			""
+			.application_identifier_n = 0
 		),
 		QMI_INIT_SEQUENCE(info,
 			.pin_id = QMI_UIM_PIN_ID_PIN2,

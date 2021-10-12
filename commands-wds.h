@@ -31,7 +31,7 @@
 	__uqmi_command(wds_stop_network, stop-network, required, QMI_SERVICE_WDS), \
 	__uqmi_command(wds_get_packet_service_status, get-data-status, no, QMI_SERVICE_WDS), \
 	__uqmi_command(wds_set_ip_family, set-ip-family, required, QMI_SERVICE_WDS), \
-	__uqmi_command(wds_set_autoconnect_setting, set-autoconnect, required, QMI_SERVICE_WDS), \
+	__uqmi_command(wds_set_autoconnect_settings, set-autoconnect, required, QMI_SERVICE_WDS), \
 	__uqmi_command(wds_reset, reset-wds, no, QMI_SERVICE_WDS), \
 	__uqmi_command(wds_get_current_settings, get-current-settings, no, QMI_SERVICE_WDS) \
 

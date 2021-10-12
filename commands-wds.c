@@ -182,15 +182,15 @@ cmd_wds_get_packet_service_status_prepare(struct qmi_dev *qmi, struct qmi_reques
 	return QMI_CMD_REQUEST;
 }
 
-#define cmd_wds_set_autoconnect_setting_cb no_cb
+#define cmd_wds_set_autoconnect_settings_cb no_cb
 static enum qmi_cmd_result
-cmd_wds_set_autoconnect_setting_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
+cmd_wds_set_autoconnect_settings_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
 {
-	struct qmi_wds_set_autoconnect_setting_request ac_req;
+	struct qmi_wds_set_autoconnect_settings_request ac_req;
 	const char *modes[] = {
-		[QMI_WDS_AUTOCONNECT_DISABLED] = "disabled",
-		[QMI_WDS_AUTOCONNECT_ENABLED] = "enabled",
-		[QMI_WDS_AUTOCONNECT_PAUSED] = "paused",
+		[QMI_WDS_AUTOCONNECT_SETTING_DISABLED] = "disabled",
+		[QMI_WDS_AUTOCONNECT_SETTING_ENABLED] = "enabled",
+		[QMI_WDS_AUTOCONNECT_SETTING_PAUSED] = "paused",
 	};
 	int i;
 
@@ -198,8 +198,8 @@ cmd_wds_set_autoconnect_setting_prepare(struct qmi_dev *qmi, struct qmi_request 
 		if (strcasecmp(modes[i], arg) != 0)
 			continue;
 
-		qmi_set(&ac_req, setting, i);
-		qmi_set_wds_set_autoconnect_setting_request(msg, &ac_req);
+		qmi_set(&ac_req, status, i);
+		qmi_set_wds_set_autoconnect_settings_request(msg, &ac_req);
 		return QMI_CMD_DONE;
 	}
 
