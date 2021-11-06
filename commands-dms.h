@@ -73,3 +73,4 @@
 		"                                     mode_only_low_power)\n" \
 		"  --fcc-auth:                       Set FCC authentication\n" \
 
+const char *get_pin_status(int status);

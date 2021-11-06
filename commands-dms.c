@@ -80,7 +80,7 @@ cmd_dms_get_capabilities_prepare(struct qmi_dev *qmi, struct qmi_request *req, s
 	return QMI_CMD_REQUEST;
 }
 
-static const char *get_pin_status(int status)
+const char *get_pin_status(int status)
 {
 	static const char *pin_status[] = {
 		[QMI_DMS_UIM_PIN_STATUS_NOT_INITIALIZED] = "not_initialized",
