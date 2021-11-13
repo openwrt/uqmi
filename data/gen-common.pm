@@ -32,6 +32,7 @@ sub gen_cname($) {
 	my $name = shift;
 
 	$name =~ s/[^a-zA-Z0-9_]/_/g;
+	$name = "_${name}" if $name =~ /^\d/;
 	return lc($name);
 }
 
