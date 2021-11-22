@@ -83,7 +83,7 @@ print_earfcn_info(uint32_t earfcn)
 		{ 45590, 46589, 44, 700,  "TDD" },
 	};
 
-	for (int i = 0; i < sizeof(earfcn_ranges); i++) {
+	for (int i = 0; i < (sizeof(earfcn_ranges) / sizeof(*earfcn_ranges)); i++) {
 		if (earfcn <= earfcn_ranges[i].max && earfcn >= earfcn_ranges[i].min) {
 			blobmsg_add_u32(&status, "band", earfcn_ranges[i].band);
 			blobmsg_add_u32(&status, "frequency", earfcn_ranges[i].freq);
