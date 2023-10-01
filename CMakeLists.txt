@@ -8,7 +8,8 @@ ADD_DEFINITIONS(-Os -ggdb -Wall -Werror --std=gnu99 -Wmissing-declarations -Wno-
 
 SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
 
-SET(SOURCES main.c dev.c commands.c qmi-message.c mbim.c)
+SET(SOURCES qmi-message.c mbim.c)
+SET(UQMI uqmi.c dev.c commands.c ${SOURCES})
 
 FIND_PATH(ubox_include_dir libubox/usock.h)
 FIND_PATH(blobmsg_json_include_dir libubox/blobmsg_json.h)
@@ -66,7 +67,7 @@ SET_SOURCE_FILES_PROPERTIES(qmi-errors.c PROPERTIES GENERATED 1)
 ADD_CUSTOM_TARGET(gen-errors DEPENDS qmi-errors.c)
 ADD_CUSTOM_TARGET(gen-headers DEPENDS ${service_headers})
 
-ADD_EXECUTABLE(uqmi ${SOURCES} ${service_sources})
+ADD_EXECUTABLE(uqmi ${UQMI} ${service_sources})
 ADD_DEPENDENCIES(uqmi gen-headers gen-errors)
 
 TARGET_LINK_LIBRARIES(uqmi ${LIBS})
