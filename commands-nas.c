@@ -19,8 +19,11 @@
  * Boston, MA 02110-1301 USA.
  */
 
+#include "uqmi.h"
 #include "qmi-message.h"
 #include "commands.h"
+
+#include <libubox/blobmsg.h>
 
 static struct qmi_nas_get_tx_rx_info_request tx_rx_req;
 static struct qmi_nas_set_system_selection_preference_request sel_req;
