@@ -23,6 +23,8 @@
 #define __UQMI_COMMANDS_H
 
 #include <stdbool.h>
+#include <libubox/blob.h>
+
 #include "commands-wds.h"
 #include "commands-dms.h"
 #include "commands-nas.h"
@@ -75,6 +77,7 @@ enum uqmi_command {
 
 extern bool single_line;
 extern const struct uqmi_cmd_handler uqmi_cmd_handler[];
+extern struct blob_buf status;
 void uqmi_add_command(char *arg, int longidx);
 bool uqmi_run_commands(struct qmi_dev *qmi);
 int uqmi_add_error(const char *msg);

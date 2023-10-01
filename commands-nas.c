@@ -20,6 +20,7 @@
  */
 
 #include "qmi-message.h"
+#include "commands.h"
 
 static struct qmi_nas_get_tx_rx_info_request tx_rx_req;
 static struct qmi_nas_set_system_selection_preference_request sel_req;

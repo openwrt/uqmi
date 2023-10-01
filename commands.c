@@ -31,7 +31,7 @@
 #include "uqmi.h"
 #include "commands.h"
 
-static struct blob_buf status;
+struct blob_buf status;
 bool single_line = false;
 
 static void no_cb(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg)
