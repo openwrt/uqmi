@@ -249,6 +249,12 @@ void qmi_request_cancel(struct qmi_dev *qmi, struct qmi_request *req)
 	__qmi_request_complete(qmi, req, NULL);
 }
 
+/*! Run uloop until the request has been completed
+ *
+ * \param qmi the qmi device
+ * \param req the request to wait for
+ * \return req->ret (0 on success)
+ */
 int qmi_request_wait(struct qmi_dev *qmi, struct qmi_request *req)
 {
 	bool complete = false;
