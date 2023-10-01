@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.10)
 PROJECT(uqmi C)
 
 OPTION(BUILD_STATIC OFF)
+OPTION(BUILD_UQMID OFF)
 
 ADD_DEFINITIONS(-Os -ggdb -Wall -Werror --std=gnu99 -Wmissing-declarations -Wno-enum-conversion -Wno-dangling-pointer)
 
@@ -67,3 +68,17 @@ ADD_DEPENDENCIES(qmigen gen-headers gen-errors)
 
 ADD_SUBDIRECTORY(common)
 ADD_SUBDIRECTORY(uqmi)
+
+IF(BUILD_UQMID)
+	FIND_PATH(talloc_include_dir talloc.h)
+	FIND_PATH(ubus_include_dir libubus.h)
+	IF(BUILD_STATIC)
+		FIND_LIBRARY(talloc_library NAMES libtalloc.a)
+		FIND_LIBRARY(ubus_library NAMES libubus.a)
+	ELSE(BUILD_STATIC)
+		FIND_LIBRARY(talloc_library NAMES talloc)
+		FIND_LIBRARY(ubus_library NAMES ubus)
+	ENDIF(BUILD_STATIC)
+
+	ADD_SUBDIRECTORY(uqmid)
+ENDIF(BUILD_UQMID)
