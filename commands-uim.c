@@ -19,6 +19,8 @@
  * Boston, MA 02110-1301 USA.
  */
 
+static int uim_slot = 0;
+
 #define cmd_uim_verify_pin1_cb no_cb
 static enum qmi_cmd_result
 cmd_uim_verify_pin1_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
@@ -128,5 +130,55 @@ static enum qmi_cmd_result
 cmd_uim_get_sim_state_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
 {
 	qmi_set_uim_get_card_status_request(msg);
+	return QMI_CMD_REQUEST;
+}
+
+#define cmd_uim_slot_cb no_cb
+static enum qmi_cmd_result
+cmd_uim_slot_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
+{
+	char *err;
+	int value = strtoul(arg, &err, 10);
+	if ((err && *err) || value < 1 || value > 2) {
+		uqmi_add_error("Invalid UIM-Slot value. Allowed: [1,2]");
+		return QMI_CMD_EXIT;
+	}
+
+	uim_slot = value;
+
+	return QMI_CMD_DONE;
+}
+
+#define cmd_uim_power_off_cb no_cb
+static enum qmi_cmd_result
+cmd_uim_power_off_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
+{
+	struct qmi_uim_power_off_sim_request data = {
+		QMI_INIT(slot, uim_slot)
+	};
+
+	if (!uim_slot) {
+		uqmi_add_error("UIM-Slot not set. Use --uim-slot <slot> to set it.");
+		return QMI_CMD_EXIT;
+	}
+
+	qmi_set_uim_power_off_sim_request(msg, &data);
+	return QMI_CMD_REQUEST;
+}
+
+#define cmd_uim_power_on_cb no_cb
+static enum qmi_cmd_result
+cmd_uim_power_on_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
+{
+	struct qmi_uim_power_on_sim_request data = {
+		QMI_INIT(slot, uim_slot)
+	};
+
+	if (!uim_slot) {
+		uqmi_add_error("UIM-Slot not set. Use --uim-slot <slot> to set it.");
+		return QMI_CMD_EXIT;
+	}
+
+	qmi_set_uim_power_on_sim_request(msg, &data);
 	return QMI_CMD_REQUEST;
 }
