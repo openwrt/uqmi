@@ -59,6 +59,16 @@ static void cmd_uim_get_sim_state_cb(struct qmi_dev *qmi, struct qmi_request *re
 {
 	struct qmi_uim_get_card_status_response res;
 	void * const card_table = blobmsg_open_table(&status, NULL);
+	static const char *card_application_states[] = {
+		[QMI_UIM_CARD_APPLICATION_STATE_UNKNOWN] = "unknown",
+		[QMI_UIM_CARD_APPLICATION_STATE_DETECTED] = "detected",
+		[QMI_UIM_CARD_APPLICATION_STATE_PIN1_OR_UPIN_PIN_REQUIRED] = "pin-required",
+		[QMI_UIM_CARD_APPLICATION_STATE_PUK1_OR_UPIN_PUK_REQUIRED] = "puk-required",
+		[QMI_UIM_CARD_APPLICATION_STATE_CHECK_PERSONALIZATION_STATE] = "check-personalization-state",
+		[QMI_UIM_CARD_APPLICATION_STATE_PIN1_BLOCKED] = "pin1-blocked",
+		[QMI_UIM_CARD_APPLICATION_STATE_ILLEGAL] = "illegal",
+		[QMI_UIM_CARD_APPLICATION_STATE_READY] = "ready",
+	};
 
 	qmi_parse_uim_get_card_status_response(msg, &res);
 
@@ -66,6 +76,7 @@ static void cmd_uim_get_sim_state_cb(struct qmi_dev *qmi, struct qmi_request *re
 		if (res.data.card_status.cards[i].card_state != QMI_UIM_CARD_STATE_PRESENT)
 			continue;
 
+		uint8_t card_application_state;
 		uint8_t pin1_state = res.data.card_status.cards[i].upin_state;
 		uint8_t pin1_retries = res.data.card_status.cards[i].upin_retries;
 		uint8_t puk1_retries = res.data.card_status.cards[i].upuk_retries;
@@ -77,6 +88,8 @@ static void cmd_uim_get_sim_state_cb(struct qmi_dev *qmi, struct qmi_request *re
 		for (int j = 0; j < res.data.card_status.cards[i].applications_n; ++j) {
 			if (res.data.card_status.cards[i].applications[j].type == QMI_UIM_CARD_APPLICATION_TYPE_UNKNOWN)
 				continue;
+
+			card_application_state = pin1_state = res.data.card_status.cards[i].applications[j].state;
 
 			if (!res.data.card_status.cards[i].applications[j].upin_replaces_pin1) {
 				pin1_state = res.data.card_status.cards[i].applications[j].pin1_state;
@@ -92,6 +105,10 @@ static void cmd_uim_get_sim_state_cb(struct qmi_dev *qmi, struct qmi_request *re
 			break; /* handle first application only for now */
 		}
 
+		if (card_application_state > QMI_UIM_CARD_APPLICATION_STATE_READY)
+			card_application_state = QMI_UIM_CARD_APPLICATION_STATE_UNKNOWN;
+
+		blobmsg_add_string(&status, "card_application_state", card_application_states[card_application_state]);
 		blobmsg_add_string(&status, "pin1_status", get_pin_status(pin1_state));
 		blobmsg_add_u32(&status, "pin1_verify_tries", pin1_retries);
 		blobmsg_add_u32(&status, "pin1_unlock_tries", puk1_retries);
