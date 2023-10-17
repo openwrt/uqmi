@@ -29,6 +29,7 @@
 #include <libubox/blobmsg_json.h>
 
 #include "uqmi.h"
+#include "utils.h"
 #include "commands.h"
 
 struct blob_buf status;

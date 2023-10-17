@@ -458,15 +458,3 @@ QmiService qmi_service_get_by_name(const char *str)
 
 	return -1;
 }
-
-const char *qmi_get_error_str(int code)
-{
-	int i;
-
-	for (i = 0; i < ARRAY_SIZE(qmi_errors); i++) {
-		if (qmi_errors[i].code == code)
-			return qmi_errors[i].text;
-	}
-
-	return "Unknown error";
-}

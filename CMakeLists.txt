@@ -8,7 +8,7 @@ ADD_DEFINITIONS(-Os -ggdb -Wall -Werror --std=gnu99 -Wmissing-declarations -Wno-
 
 SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
 
-SET(SOURCES qmi-message.c mbim.c)
+SET(SOURCES qmi-message.c mbim.c utils.c)
 SET(UQMI uqmi.c dev.c commands.c ${SOURCES})
 
 FIND_PATH(ubox_include_dir libubox/usock.h)
