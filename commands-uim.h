@@ -31,7 +31,7 @@
 #define uim_helptext \
 		"  --uim-verify-pin1 <pin>:          Verify PIN1 (new devices)\n" \
 		"  --uim-verify-pin2 <pin>:          Verify PIN2 (new devices)\n" \
-		"  --uim-get-sim-state:                  Get current SIM state\n" \
+		"  --uim-get-sim-state:              Get current SIM state\n" \
 		"  --uim-power-off:                  Power off SIM card\n" \
 		"    --uim-slot:                     SIM slot [1-2]\n" \
 		"  --uim-power-on:                   Power on SIM card\n" \
