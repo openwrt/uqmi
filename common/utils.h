@@ -24,5 +24,6 @@
 #define __UTILS_H
 
 const char *qmi_get_error_str(int code);
+void system_fd_set_cloexec(int fd);
 
 #endif /* __UTILS_H */
