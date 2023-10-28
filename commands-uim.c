@@ -110,6 +110,7 @@ static void cmd_uim_get_sim_state_cb(struct qmi_dev *qmi, struct qmi_request *re
 		if (card_application_state > QMI_UIM_CARD_APPLICATION_STATE_READY)
 			card_application_state = QMI_UIM_CARD_APPLICATION_STATE_UNKNOWN;
 
+		blobmsg_add_u32(&status, "card_slot", i + 1); /* Slot is idx + 1 */
 		blobmsg_add_string(&status, "card_application_state", card_application_states[card_application_state]);
 		blobmsg_add_string(&status, "pin1_status", get_pin_status(pin1_state));
 		blobmsg_add_u32(&status, "pin1_verify_tries", pin1_retries);
