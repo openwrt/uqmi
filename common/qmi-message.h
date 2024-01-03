@@ -92,8 +92,8 @@
 	.data._field##_n = ARRAY_SIZE(_val), \
 	.data._field = (_val)
 
-#define QMI_INIT_ARRAY(_field, _val, _n) \
-	.data._field##_n = (_n), \
+#define QMI_INIT_ARRAY(_field, _val, _num_elems) \
+	.data._field##_n = (_num_elems), \
 	.data._field = (_val)
 
 
