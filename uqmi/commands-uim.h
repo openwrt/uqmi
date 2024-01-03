@@ -25,7 +25,11 @@
 	__uqmi_command(uim_verify_pin2, uim-verify-pin2, required, QMI_SERVICE_UIM), \
 	__uqmi_command(uim_get_sim_state, uim-get-sim-state, no, QMI_SERVICE_UIM), \
 	__uqmi_command(uim_power_off, uim-power-off, no, QMI_SERVICE_UIM), \
-	__uqmi_command(uim_power_on, uim-power-on, no, QMI_SERVICE_UIM) \
+	__uqmi_command(uim_power_on, uim-power-on, no, QMI_SERVICE_UIM), \
+	__uqmi_command(uim_channel_id, uim-channel-id, required, CMD_TYPE_OPTION), \
+	__uqmi_command(uim_open_logical_channel, uim-channel-open, required, QMI_SERVICE_UIM), \
+	__uqmi_command(uim_close_logical_channel, uim-channel-close, no, QMI_SERVICE_UIM), \
+	__uqmi_command(uim_send_apdu, uim-apdu-send, required, QMI_SERVICE_UIM) \
 
 
 #define uim_helptext \
@@ -36,4 +40,12 @@
 		"    --uim-slot:                     SIM slot [1-2]\n" \
 		"  --uim-power-on:                   Power on SIM card\n" \
 		"    --uim-slot:                     SIM slot [1-2]\n" \
+		"  --uim-channel-open <AID>:         Open channel for AID\n" \
+		"    --uim-slot:                     SIM slot [1-2]\n" \
+		"  --uim-channel-close:              Close channel\n" \
+		"    --uim-slot:                     SIM slot [1-2]\n" \
+		"    --uim-channel-id:               Channel-id\n" \
+		"  --uim-apdu-send <cmd>:            Send APDU command to ICC\n" \
+		"    --uim-slot:                     SIM slot [1-2]\n" \
+		"    --uim-channel-id:               Channel-id\n" \
 

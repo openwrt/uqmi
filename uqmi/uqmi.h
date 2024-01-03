@@ -123,4 +123,54 @@ int qmi_service_get_client_id(struct qmi_dev *qmi, QmiService svc);
 int qmi_service_release_client_id(struct qmi_dev *qmi, QmiService svc);
 QmiService qmi_service_get_by_name(const char *str);
 
+static inline uint8_t *uqmi_hexstring_parse(uint8_t *output,
+					    const uint8_t *hexstr,
+					    size_t hexstr_size)
+{
+	uint8_t *out = output;
+	size_t i;
+
+	for (i = 0; i < hexstr_size; i += 2) {
+		if (hexstr[i] >= '0' && hexstr[i] <= '9')
+			*out = (hexstr[i] - '0') << 4;
+		else if (hexstr[i] >= 'a' && hexstr[i] <= 'f')
+			*out = (hexstr[i] - 'a' + 10) << 4;
+		else if (hexstr[i] >= 'A' && hexstr[i] <= 'F')
+			*out = (hexstr[i] - 'A' + 10) << 4;
+		else
+			return NULL;
+
+		if (i + 1 >= hexstr_size)
+			return NULL;
+
+		if (hexstr[i + 1] >= '0' && hexstr[i + 1] <= '9')
+			*out |= hexstr[i + 1] - '0';
+		else if (hexstr[i + 1] >= 'a' && hexstr[i + 1] <= 'f')
+			*out |= hexstr[i + 1] - 'a' + 10;
+		else if (hexstr[i + 1] >= 'A' && hexstr[i + 1] <= 'F')
+			*out |= hexstr[i + 1] - 'A' + 10;
+		else
+			return NULL;
+
+		out++;
+	}
+
+	return output;
+}
+
+static inline uint8_t *uqmi_hexstring_create(uint8_t *output,
+					      const uint8_t *data,
+					      size_t data_size)
+{
+	uint8_t *out = output;
+	size_t i;
+
+	for (i = 0; i < data_size; i++) {
+		*out++ = "0123456789abcdef"[data[i] >> 4];
+		*out++ = "0123456789abcdef"[data[i] & 0xf];
+	}
+
+	return output;
+}
+
 #endif

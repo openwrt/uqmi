@@ -19,7 +19,12 @@
  * Boston, MA 02110-1301 USA.
  */
 
+#include "qmi-message.h"
+
 static int uim_slot = 0;
+static int channel_id = -1;
+static uint8_t aid[16];
+static uint8_t apdu[1024];
 
 #define cmd_uim_verify_pin1_cb no_cb
 static enum qmi_cmd_result
@@ -181,5 +186,138 @@ cmd_uim_power_on_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qm
 	}
 
 	qmi_set_uim_power_on_sim_request(msg, &data);
+	return QMI_CMD_REQUEST;
+}
+
+#define cmd_uim_channel_id_cb no_cb
+static enum qmi_cmd_result
+cmd_uim_channel_id_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
+{
+	char *err;
+	int value = strtoul(arg, &err, 10);
+	if ((err && *err) || value < 1 || value > 4) {
+		uqmi_add_error("Invalid Channel-ID value. Allowed: [1,2,3,4]");
+		return QMI_CMD_EXIT;
+	}
+
+	channel_id = value;
+
+	return QMI_CMD_DONE;
+}
+
+static void cmd_uim_open_logical_channel_cb(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg)
+{
+	struct qmi_uim_open_logical_channel_response res;
+	void *c;
+
+	qmi_parse_uim_open_logical_channel_response(msg, &res);
+
+	c = blobmsg_open_table(&status, NULL);
+	blobmsg_add_u32(&status, "channel_id", res.data.channel_id);
+	blobmsg_add_u32(&status, "sw1", res.data.card_result.sw1);
+	blobmsg_add_u32(&status, "sw2", res.data.card_result.sw2);
+	blobmsg_close_table(&status, c);
+}
+
+static enum qmi_cmd_result
+cmd_uim_open_logical_channel_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
+{
+	struct qmi_uim_open_logical_channel_request data = {
+		QMI_INIT(slot, uim_slot),
+		QMI_INIT_ARRAY(aid, aid, (strlen(arg) / 2)),
+	};
+	
+
+	if (!uim_slot) {
+		uqmi_add_error("UIM-Slot not set");
+		return QMI_CMD_EXIT;
+	}
+
+	if (!arg) {
+		uqmi_add_error("Missing AID argument");
+		return QMI_CMD_EXIT;
+	}
+
+	if (strlen(arg) % 2 || strlen(arg) > sizeof(aid) * 2 ||
+	    !uqmi_hexstring_parse(aid, (uint8_t *)arg, strlen(arg))) {
+		uqmi_add_error("Invalid AID argument");
+		return QMI_CMD_EXIT;
+	}
+
+	qmi_set_uim_open_logical_channel_request(msg, &data);
+	return QMI_CMD_REQUEST;
+}
+
+#define cmd_uim_close_logical_channel_cb no_cb
+static enum qmi_cmd_result
+cmd_uim_close_logical_channel_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
+{
+	struct qmi_uim_logical_channel_request data = {
+		QMI_INIT(slot, uim_slot),
+		QMI_INIT(channel_id, channel_id),
+	};	
+
+	if (!uim_slot) {
+		uqmi_add_error("UIM-Slot not set. Use --uim-slot <slot> to set it.");
+		return QMI_CMD_EXIT;
+	}
+
+	if (channel_id < 1) {
+		uqmi_add_error("Invalid channel-id set.");
+		return QMI_CMD_EXIT;
+	}
+
+	qmi_set_uim_logical_channel_request(msg, &data);
+	return QMI_CMD_REQUEST;
+}
+
+static void cmd_uim_send_apdu_cb(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg)
+{
+	struct qmi_uim_send_apdu_response res;
+	uint8_t *hexstr;
+	void *c;
+
+	qmi_parse_uim_send_apdu_response(msg, &res);
+
+	hexstr = calloc(1, res.data.apdu_response_n * 2 + 1);
+	if (!hexstr)
+		return;
+
+	uqmi_hexstring_create(hexstr, res.data.apdu_response, res.data.apdu_response_n);
+
+	c = blobmsg_open_table(&status, NULL);
+	blobmsg_add_string(&status, "response", (char *)hexstr);
+	blobmsg_close_table(&status, c);
+
+	free(hexstr);
+}
+
+static enum qmi_cmd_result
+cmd_uim_send_apdu_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
+{
+	struct qmi_uim_send_apdu_request data = {
+		QMI_INIT(slot, uim_slot),
+		QMI_INIT(channel_id, channel_id),
+		QMI_INIT_ARRAY(apdu, apdu, (strlen(arg) / 2)),
+	};
+	
+
+	if (!uim_slot) {
+		uqmi_add_error("UIM-Slot not set. Use --uim-slot <slot> to set it.");
+		return QMI_CMD_EXIT;
+	}
+
+	if (!arg) {
+		uqmi_add_error("Missing APDU argument");
+		return QMI_CMD_EXIT;
+	}
+
+	if (strlen(arg) % 2 || strlen(arg) > sizeof(apdu) * 2 ||
+	    !uqmi_hexstring_parse(apdu, (uint8_t *)arg, strlen(arg))) {
+		uqmi_add_error("Invalid APDU argument");
+		return QMI_CMD_EXIT;
+	}
+
+	qmi_set_uim_send_apdu_request(msg, &data);
 	return QMI_CMD_REQUEST;
 }
