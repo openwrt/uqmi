@@ -19,44 +19,20 @@
  * Boston, MA 02110-1301 USA.
  */
 
-#ifndef __QMI_STRUCT_H
-#define __QMI_STRUCT_H
+#include "utils.h"
+#include "qmi-errors.h"
+#include <qmi-errors.c>
 
-struct qmux {
-	uint16_t len;
-	uint8_t flags;
-	uint8_t service;
-	uint8_t client;
-} __packed;
+#include <libubox/utils.h>
 
-struct tlv {
-	uint8_t type;
-	uint16_t len;
-	uint8_t data[];
-} __packed;
+const char *qmi_get_error_str(int code)
+{
+	int i;
 
-struct qmi_ctl {
-	uint8_t transaction;
-	uint16_t message;
-	uint16_t tlv_len;
-	struct tlv tlv[];
-} __packed;
+	for (i = 0; i < ARRAY_SIZE(qmi_errors); i++) {
+		if (qmi_errors[i].code == code)
+			return qmi_errors[i].text;
+	}
 
-struct qmi_svc {
-	uint16_t transaction;
-	uint16_t message;
-	uint16_t tlv_len;
-	struct tlv tlv[];
-} __packed;
-
-struct qmi_msg {
-	uint8_t marker;
-	struct qmux qmux;
-	uint8_t flags;
-	union {
-		struct qmi_ctl ctl;
-		struct qmi_svc svc;
-	};
-} __packed;
-
-#endif
+	return "Unknown error";
+}

@@ -19,7 +19,11 @@
  * Boston, MA 02110-1301 USA.
  */
 
+#include "uqmi.h"
 #include "qmi-message.h"
+#include "commands.h"
+
+#include <libubox/blobmsg.h>
 
 static struct qmi_nas_get_tx_rx_info_request tx_rx_req;
 static struct qmi_nas_set_system_selection_preference_request sel_req;
@@ -710,7 +714,7 @@ static void
 cmd_nas_get_cell_location_info_cb(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg)
 {
 	struct qmi_nas_get_cell_location_info_response res;
-	void *c, *t, *cell, *freq;
+	void *c = NULL, *t, *cell, *freq;
 	int i, j;
 
 	qmi_parse_nas_get_cell_location_info_response(msg, &res);

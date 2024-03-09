@@ -78,7 +78,7 @@ static void cmd_uim_get_sim_state_cb(struct qmi_dev *qmi, struct qmi_request *re
 		if (res.data.card_status.cards[i].card_state != QMI_UIM_CARD_STATE_PRESENT)
 			continue;
 
-		uint8_t card_application_state;
+		uint8_t card_application_state = QMI_UIM_CARD_APPLICATION_STATE_UNKNOWN;
 		uint8_t pin1_state = res.data.card_status.cards[i].upin_state;
 		uint8_t pin1_retries = res.data.card_status.cards[i].upin_retries;
 		uint8_t puk1_retries = res.data.card_status.cards[i].upuk_retries;

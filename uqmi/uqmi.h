@@ -122,6 +122,5 @@ int qmi_service_connect(struct qmi_dev *qmi, QmiService svc, int client_id);
 int qmi_service_get_client_id(struct qmi_dev *qmi, QmiService svc);
 int qmi_service_release_client_id(struct qmi_dev *qmi, QmiService svc);
 QmiService qmi_service_get_by_name(const char *str);
-const char *qmi_get_error_str(int code);
 
 #endif

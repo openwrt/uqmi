@@ -82,6 +82,7 @@ sub gen_foreach_message_type($$$)
 	my $data = shift;
 	my $req_sub = shift;
 	my $res_sub = shift;
+	my $ind_sub = shift;
 
 	foreach my $entry (@$data) {
 		my $args = [];
@@ -95,6 +96,19 @@ sub gen_foreach_message_type($$$)
 		&$req_sub($prefix.$entry->{name}." Request", $entry->{input}, $entry);
 		&$res_sub($prefix.$entry->{name}." Response", $entry->{output}, $entry);
 	}
+
+	foreach my $entry (@$data) {
+		my $args = [];
+		my $fields = [];
+
+		$common_ref{$entry->{'common-ref'}} = $entry if $entry->{'common-ref'} ne '';
+
+		next if $entry->{type} ne 'Indication';
+		next if not defined $entry->{input} and not defined $entry->{output};
+
+		&$ind_sub($prefix.$entry->{name}." Indication", $entry->{output}, $entry);
+	}
 }
+
 
 1;
