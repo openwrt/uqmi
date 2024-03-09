@@ -8,9 +8,6 @@ ADD_DEFINITIONS(-Os -ggdb -Wall -Werror --std=gnu99 -Wmissing-declarations -Wno-
 
 SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
 
-SET(SOURCES qmi-message.c mbim.c utils.c)
-SET(UQMI uqmi.c dev.c commands.c ${SOURCES})
-
 FIND_PATH(ubox_include_dir libubox/usock.h)
 FIND_PATH(blobmsg_json_include_dir libubox/blobmsg_json.h)
 FIND_PATH(json_include_dir json-c/json.h json/json.h json.h)
@@ -67,12 +64,9 @@ SET_SOURCE_FILES_PROPERTIES(qmi-errors.c PROPERTIES GENERATED 1)
 ADD_CUSTOM_TARGET(gen-errors DEPENDS qmi-errors.c)
 ADD_CUSTOM_TARGET(gen-headers DEPENDS ${service_headers})
 
-ADD_EXECUTABLE(uqmi ${UQMI} ${service_sources})
-ADD_DEPENDENCIES(uqmi gen-headers gen-errors)
+INCLUDE_DIRECTORIES(common ${CMAKE_BINARY_DIR})
+ADD_LIBRARY(qmigen ${service_sources})
+ADD_DEPENDENCIES(qmigen gen-headers gen-errors)
 
-TARGET_LINK_LIBRARIES(uqmi ${LIBS})
-TARGET_INCLUDE_DIRECTORIES(uqmi PRIVATE ${ubox_include_dir} ${blobmsg_json_include_dir} ${json_include_dir} ${CMAKE_BINARY_DIR} ${CMAKE_SOURCE_DIR})
-
-INSTALL(TARGETS uqmi
-	RUNTIME DESTINATION sbin
-)
+ADD_SUBDIRECTORY(common)
+ADD_SUBDIRECTORY(uqmi)
