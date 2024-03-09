@@ -22,6 +22,9 @@
 #ifndef __QMI_STRUCT_H
 #define __QMI_STRUCT_H
 
+#include <libubox/utils.h>
+#include <stdint.h>
+
 struct qmux {
 	uint16_t len;
 	uint8_t flags;
