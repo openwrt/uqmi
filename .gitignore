@@ -1,4 +1,5 @@
 uqmi
+build/
 .*
 Makefile
 CMakeCache.txt
