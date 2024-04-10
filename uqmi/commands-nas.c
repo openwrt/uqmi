@@ -25,6 +25,10 @@
 
 #include <libubox/blobmsg.h>
 
+/* According to libqmi, a value of -32768 in 5G
+ * indicates that the modem is not connected. */
+#define _5GNR_NOT_CONNECTED_VALUE	-32768
+
 static struct qmi_nas_get_tx_rx_info_request tx_rx_req;
 static struct qmi_nas_set_system_selection_preference_request sel_req;
 static struct	{
@@ -131,6 +135,7 @@ cmd_nas_set_network_modes_prepare(struct qmi_dev *qmi, struct qmi_request *req, 
 		{ "gsm", QMI_NAS_RAT_MODE_PREFERENCE_GSM },
 		{ "umts", QMI_NAS_RAT_MODE_PREFERENCE_UMTS },
 		{ "lte", QMI_NAS_RAT_MODE_PREFERENCE_LTE },
+		{ "5gnr", QMI_NAS_RAT_MODE_PREFERENCE_5GNR },
 	};
 	QmiNasRatModePreference val = 0;
 	char *word;
@@ -266,9 +271,25 @@ static void
 cmd_nas_get_signal_info_cb(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg)
 {
 	struct qmi_nas_get_signal_info_response res;
-	void *c;
+	void *c, *a;
+	bool is_5gnr_connected = false;
+	bool is_5gnr_endc = false;
 
 	qmi_parse_nas_get_signal_info_response(msg, &res);
+
+	/* If 5G NR EN-DC (dual connectivity) is enabled, the mobile device has two connections,
+	 * one with the LTE base station, and one with the NR base station.
+	 * Therefore an array of signals has to be reported in this case. */
+	is_5gnr_connected = ((res.set._5g_signal_strength &&
+		((res.data._5g_signal_strength.rsrp != _5GNR_NOT_CONNECTED_VALUE) ||
+		 (res.data._5g_signal_strength.snr != _5GNR_NOT_CONNECTED_VALUE))) ||
+		(res.set._5g_signal_strength_extended &&
+		(res.data._5g_signal_strength_extended != _5GNR_NOT_CONNECTED_VALUE)));
+	is_5gnr_endc = (res.set.lte_signal_strength && is_5gnr_connected);
+
+	if (is_5gnr_endc) {
+		a = blobmsg_open_array(&status, NULL);
+	}
 
 	c = blobmsg_open_table(&status, NULL);
 	if (res.set.cdma_signal_strength) {
@@ -308,7 +329,30 @@ cmd_nas_get_signal_info_cb(struct qmi_dev *qmi, struct qmi_request *req, struct 
 		blobmsg_add_u32(&status, "signal", (int32_t) res.data.tdma_signal_strength);
 	}
 
+	if (is_5gnr_connected) {
+		if (is_5gnr_endc) {
+			blobmsg_close_table(&status, c);
+			c = blobmsg_open_table(&status, NULL);
+		}
+		blobmsg_add_string(&status, "type", "5gnr");
+		if (res.set._5g_signal_strength) {
+			if (res.data._5g_signal_strength.rsrp != _5GNR_NOT_CONNECTED_VALUE)
+				blobmsg_add_u32(&status, "rsrp", (int32_t) res.data._5g_signal_strength.rsrp);
+			if (res.data._5g_signal_strength.snr != _5GNR_NOT_CONNECTED_VALUE)
+				blobmsg_add_double(&status, "snr", (double) res.data._5g_signal_strength.snr*0.1);
+		}
+
+		if (res.set._5g_signal_strength_extended &&
+			(res.data._5g_signal_strength_extended != _5GNR_NOT_CONNECTED_VALUE)) {
+			blobmsg_add_u32(&status, "rsrq", (int32_t) res.data._5g_signal_strength_extended);
+		}
+	}
+
 	blobmsg_close_table(&status, c);
+
+	if (is_5gnr_endc) {
+		blobmsg_close_array(&status, a);
+	}
 }
 
 static void
@@ -502,6 +546,37 @@ cmd_nas_get_system_info_cb(struct qmi_dev *qmi, struct qmi_request *req, struct 
 
 		blobmsg_close_table(&status, c);
 	}
+
+	if (res.set.nr5g_service_status_info) {
+		c = blobmsg_open_table(&status, "5gnr");
+		print_system_info(res.data.nr5g_service_status_info.service_status,
+				  res.data.nr5g_service_status_info.true_service_status,
+				  res.data.nr5g_service_status_info.preferred_data_path,
+				  res.set.nr5g_system_info,
+				  res.data.nr5g_system_info.domain_valid,
+				  res.data.nr5g_system_info.domain,
+				  res.data.nr5g_system_info.service_capability_valid,
+				  res.data.nr5g_system_info.service_capability,
+				  res.data.nr5g_system_info.roaming_status_valid,
+				  res.data.nr5g_system_info.roaming_status,
+				  res.data.nr5g_system_info.forbidden_valid,
+				  res.data.nr5g_system_info.forbidden,
+				  res.data.nr5g_system_info.network_id_valid,
+				  res.data.nr5g_system_info.mcc,
+				  res.data.nr5g_system_info.mnc,
+				  res.data.nr5g_system_info.lac_valid,
+				  res.data.nr5g_system_info.lac);
+		if (res.set.nr5g_system_info && res.data.nr5g_system_info.tac_valid)
+			blobmsg_add_u32(&status, "tracking_area_code",
+					res.data.nr5g_system_info.tac);
+		if (res.set.nr5g_system_info && res.data.nr5g_system_info.cid_valid) {
+			blobmsg_add_u32(&status, "enodeb_id",res.data.nr5g_system_info.cid/256);
+			blobmsg_add_u32(&status, "cell_id",res.data.nr5g_system_info.cid%256);
+		}
+
+		blobmsg_close_table(&status, c);
+	}
+
 	blobmsg_close_table(&status, t);
 }
 
@@ -598,11 +673,14 @@ print_chain_info(int8_t radio, bool tuned, int32_t rssi, int32_t ecio, int32_t r
 {
 	blobmsg_add_u8(&status, "tuned", tuned);
 	blobmsg_add_double(&status, "rssi", (double) rssi*0.1);
-	if (radio == QMI_NAS_RADIO_INTERFACE_LTE) {
+	if (radio == QMI_NAS_RADIO_INTERFACE_5GNR) {
+		blobmsg_add_double(&status, "rsrp", (double) rsrp*-0.1);
+	}
+	else if (radio == QMI_NAS_RADIO_INTERFACE_LTE) {
 		blobmsg_add_double(&status, "rsrq", (double) ecio*-0.1);
 		blobmsg_add_double(&status, "rsrp", (double) rsrp*-0.1);
 	}
-	if (radio == QMI_NAS_RADIO_INTERFACE_UMTS) {
+	else if (radio == QMI_NAS_RADIO_INTERFACE_UMTS) {
 		blobmsg_add_double(&status, "ecio", (double) ecio*-0.1);
 		blobmsg_add_double(&status, "rscp", (double) rscp*-0.1);
 	}
@@ -679,7 +757,9 @@ cmd_nas_get_tx_rx_info_prepare(struct qmi_dev *qmi, struct qmi_request *req, str
 {
 	int radio = 0;
 
-	if (!strcmp(arg, "lte"))
+	if (!strcmp(arg, "5gnr"))
+		radio = QMI_NAS_RADIO_INTERFACE_5GNR;
+	else if (!strcmp(arg, "lte"))
 		radio = QMI_NAS_RADIO_INTERFACE_LTE;
 	else if (!strcmp(arg, "umts"))
 		radio = QMI_NAS_RADIO_INTERFACE_UMTS;
@@ -900,6 +980,25 @@ cmd_nas_get_cell_location_info_cb(struct qmi_dev *qmi, struct qmi_request *req, 
 		if (res.data.umts_info_neighboring_lte.frequency_n > 0)
 			blobmsg_close_table(&status, c);
 	}
+	if (res.set.nr5g_cell_information) {
+		c = blobmsg_open_table(&status, "nr5g_cell_information");
+		blobmsg_add_u32(&status, "enodeb_id",
+				res.data.nr5g_cell_information.global_cell_id/256);
+		blobmsg_add_u32(&status, "cell_id",
+				res.data.nr5g_cell_information.global_cell_id%256);
+		blobmsg_add_u32(&status, "physical_cell_id",
+				res.data.nr5g_cell_information.physical_cell_id);
+		blobmsg_add_double(&status, "rsrq", ((double)res.data.nr5g_cell_information.rsrq)/10);
+		blobmsg_add_double(&status, "rsrp", ((double)res.data.nr5g_cell_information.rsrp)/10);
+		blobmsg_add_double(&status, "snr", ((double)res.data.nr5g_cell_information.snr)/10);
+		blobmsg_close_table(&status, c);
+	}
+	if (res.set.nr5g_arfcn) {
+		c = blobmsg_open_table(&status, "nr5g_arfcn");
+		blobmsg_add_u32(&status, "arfcn",
+				res.data.nr5g_arfcn);
+		blobmsg_close_table(&status, c);
+	}
 	blobmsg_close_table(&status, t);
 }
 
@@ -1015,6 +1114,7 @@ cmd_nas_network_scan_cb(struct qmi_dev *qmi, struct qmi_request *req, struct qmi
 		[QMI_NAS_RADIO_INTERFACE_UMTS] = "umts",
 		[QMI_NAS_RADIO_INTERFACE_LTE] = "lte",
 		[QMI_NAS_RADIO_INTERFACE_TD_SCDMA] = "td-scdma",
+		[QMI_NAS_RADIO_INTERFACE_5GNR] = "5gnr",
 	};
 	void *t, *c, *info, *stat;
 	int i, j;

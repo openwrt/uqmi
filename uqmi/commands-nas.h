@@ -39,7 +39,7 @@
 
 #define nas_helptext \
 		"  --set-network-modes <modes>:      Set usable network modes (Syntax: <mode1>[,<mode2>,...])\n" \
-		"                                    Available modes: all, lte, umts, gsm, cdma, td-scdma\n" \
+		"                                    Available modes: all, lte, umts, gsm, cdma, td-scdma, 5gnr\n" \
 		"  --set-network-preference <mode>:  Set preferred network mode to <mode>\n" \
 		"                                    Available modes: auto, gsm, wcdma\n" \
 		"  --set-network-roaming <mode>:     Set roaming preference:\n" \
@@ -55,5 +55,5 @@
 		"  --get-system-info:                Get system info\n" \
 		"  --get-lte-cphy-ca-info:           Get LTE Cphy CA Info\n" \
 		"  --get-cell-location-info:         Get Cell Location Info\n" \
-		"  --get-tx-rx-info <radio>:         Get TX/RX Info (gsm, umts, lte)\n" \
+		"  --get-tx-rx-info <radio>:         Get TX/RX Info (gsm, umts, lte, 5gnr)\n" \
 

@@ -49,6 +49,7 @@ static void cmd_dms_get_capabilities_cb(struct qmi_dev *qmi, struct qmi_request 
 		[QMI_DMS_RADIO_INTERFACE_GSM] = "gsm",
 		[QMI_DMS_RADIO_INTERFACE_UMTS] = "umts",
 		[QMI_DMS_RADIO_INTERFACE_LTE] = "lte",
+		[QMI_DMS_RADIO_INTERFACE_5GNR] = "5gnr",
 	};
 	const char *service_cap[] = {
 		[QMI_DMS_DATA_SERVICE_CAPABILITY_NONE] = "none",
