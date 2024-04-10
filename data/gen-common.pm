@@ -19,6 +19,54 @@ our %tlv_types = (
 );
 our %common_ref = ();
 
+my @c_reserved_keywords = (
+	"alignas",
+	"alignof",
+	"auto",
+	"bool",
+	"break",
+	"case",
+	"char",
+	"const",
+	"constexpr",
+	"continue",
+	"default",
+	"do",
+	"double",
+	"else",
+	"enum",
+	"extern",
+	"false",
+	"float",
+	"for",
+	"goto",
+	"if",
+	"inline",
+	"int",
+	"long",
+	"nullptr",
+	"register",
+	"restrict",
+	"return",
+	"short",
+	"signed",
+	"sizeof",
+	"static",
+	"static_assert",
+	"struct",
+	"switch",
+	"thread_local",
+	"true",
+	"typedef",
+	"typeof",
+	"typeof_unqual",
+	"union",
+	"unsigned",
+	"void",
+	"volatile",
+	"while"
+);
+
 $prefix eq 'ctl_' and $ctl = 1;
 
 sub get_json() {
@@ -33,7 +81,9 @@ sub gen_cname($) {
 
 	$name =~ s/[^a-zA-Z0-9_]/_/g;
 	$name = "_${name}" if $name =~ /^\d/;
-	return lc($name);
+	$name = lc($name);
+	$name = "_${name}" if (grep {$_ eq $name} @c_reserved_keywords);
+	return $name;
 }
 
 sub gen_has_types($) {
