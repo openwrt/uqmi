@@ -101,6 +101,33 @@ print_earfcn_info(uint32_t earfcn)
 	}
 }
 
+static char *
+print_radio_interface(int8_t radio_interface)
+{
+	switch (radio_interface) {
+		case QMI_NAS_RADIO_INTERFACE_NONE:
+			return "none";
+		case QMI_NAS_RADIO_INTERFACE_CDMA_1X:
+			return "cdma-1x";
+		case QMI_NAS_RADIO_INTERFACE_CDMA_1XEVDO:
+			return "cdma-1x_evdo";
+		case QMI_NAS_RADIO_INTERFACE_AMPS:
+			return "amps";
+		case QMI_NAS_RADIO_INTERFACE_GSM:
+			return "gsm";
+		case QMI_NAS_RADIO_INTERFACE_UMTS:
+			return "umts";
+		case QMI_NAS_RADIO_INTERFACE_LTE:
+			return "lte";
+		case QMI_NAS_RADIO_INTERFACE_TD_SCDMA:
+			return "td-scdma";
+		case QMI_NAS_RADIO_INTERFACE_5GNR:
+			return "5gnr";
+		default:
+			return "unknown";
+	}
+}
+
 #define cmd_nas_do_set_system_selection_cb no_cb
 static enum qmi_cmd_result
 cmd_nas_do_set_system_selection_prepare(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg, char *arg)
@@ -1105,17 +1132,6 @@ cmd_nas_network_scan_cb(struct qmi_dev *qmi, struct qmi_request *req, struct qmi
 		"preferred",
 		"not_preferred",
 	};
-	const char *radio[] = {
-		[QMI_NAS_RADIO_INTERFACE_NONE] = "none",
-		[QMI_NAS_RADIO_INTERFACE_CDMA_1X] = "cdma-1x",
-		[QMI_NAS_RADIO_INTERFACE_CDMA_1XEVDO] = "cdma-1x_evdo",
-		[QMI_NAS_RADIO_INTERFACE_AMPS] = "amps",
-		[QMI_NAS_RADIO_INTERFACE_GSM] = "gsm",
-		[QMI_NAS_RADIO_INTERFACE_UMTS] = "umts",
-		[QMI_NAS_RADIO_INTERFACE_LTE] = "lte",
-		[QMI_NAS_RADIO_INTERFACE_TD_SCDMA] = "td-scdma",
-		[QMI_NAS_RADIO_INTERFACE_5GNR] = "5gnr",
-	};
 	void *t, *c, *info, *stat;
 	int i, j;
 
@@ -1144,16 +1160,12 @@ cmd_nas_network_scan_cb(struct qmi_dev *qmi, struct qmi_request *req, struct qmi
 
 	c = blobmsg_open_array(&status, "radio_access_technology");
 	for (i = 0; i < res.data.radio_access_technology_n; i++) {
-		const char *r = "unknown";
-		int r_i = res.data.radio_access_technology[i].radio_interface;
+		int8_t r_i = res.data.radio_access_technology[i].radio_interface;
 
 		info = blobmsg_open_table(&status, NULL);
 		blobmsg_add_u32(&status, "mcc", res.data.radio_access_technology[i].mcc);
 		blobmsg_add_u32(&status, "mnc", res.data.radio_access_technology[i].mnc);
-		if (r_i >= 0 && r_i < ARRAY_SIZE(radio))
-			r = radio[r_i];
-
-		blobmsg_add_string(&status, "radio", r);
+		blobmsg_add_string(&status, "radio", print_radio_interface(r_i));
 		blobmsg_close_table(&status, info);
 	}
 	blobmsg_close_array(&status, c);
