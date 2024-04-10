@@ -1054,7 +1054,7 @@ cmd_nas_get_serving_system_cb(struct qmi_dev *qmi, struct qmi_request *req, stru
 		[QMI_NAS_REGISTRATION_STATE_REGISTRATION_DENIED] = "registering_denied",
 		[QMI_NAS_REGISTRATION_STATE_UNKNOWN] = "unknown",
 	};
-	void *c;
+	void *c, *a;
 
 	qmi_parse_nas_get_serving_system_response(msg, &res);
 
@@ -1066,6 +1066,14 @@ cmd_nas_get_serving_system_cb(struct qmi_dev *qmi, struct qmi_request *req, stru
 			state = QMI_NAS_REGISTRATION_STATE_UNKNOWN;
 
 		blobmsg_add_string(&status, "registration", reg_states[state]);
+
+		a = blobmsg_open_array(&status, "radio_interface");
+		for (int i = 0; i < res.data.serving_system.radio_interfaces_n; i++) {
+			int8_t r_i = res.data.serving_system.radio_interfaces[i];
+
+			blobmsg_add_string(&status, "radio", print_radio_interface(r_i));
+		}
+		blobmsg_close_array(&status, a);
 	}
 	if (res.set.current_plmn) {
 		blobmsg_add_u32(&status, "plmn_mcc", res.data.current_plmn.mcc);
