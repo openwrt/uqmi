@@ -54,6 +54,7 @@ uqmi_service_create(struct qmi_dev *qmi, int service_id)
 	service->client_id = -1;
 
 	list_add(&service->list, &qmi->services);
+	INIT_LIST_HEAD(&service->indications);
 	INIT_LIST_HEAD(&service->reqs);
 
 	return service;
@@ -241,4 +242,65 @@ void uqmi_service_close(struct qmi_service *service)
 
 	/* Control service is special */
 	uqmi_ctrl_release_clientid(service);
+}
+
+int uqmi_service_register_indication(struct qmi_service *service, uint16_t qmi_ind, indication_cb cb, void *cb_data)
+{
+	struct qmi_indication *indication;
+
+	indication = talloc_zero(service, struct qmi_indication);
+	if (!indication)
+		return 1;
+
+	indication->cb = cb;
+	indication->cb_data = cb_data;
+	indication->qmi_ind = qmi_ind;
+	list_add(&indication->list, &service->indications);
+
+	return 0;
+}
+
+int uqmi_service_remove_indication(struct qmi_service *service, uint16_t qmi_ind, indication_cb cb, void *cb_data)
+{
+	struct qmi_indication *indication, *tmp;
+
+	list_for_each_entry_safe(indication, tmp, &service->indications, list) {
+		if (qmi_ind != indication->qmi_ind)
+			continue;
+
+		if (indication->cb != cb)
+			continue;
+
+		if (indication->cb_data != cb_data)
+			continue;
+
+		list_del(&indication->list);
+	}
+
+	return 0;
+}
+
+int uqmi_service_handle_indication(struct qmi_service *service, struct qmi_msg *msg)
+{
+	uint16_t qmi_ind;
+	bool handled = false;
+	struct qmi_indication *indication, *tmp;
+
+	if (msg->qmux.service == QMI_SERVICE_CTL)
+		qmi_ind = msg->ctl.message;
+	else
+		qmi_ind = msg->svc.message;
+
+
+	list_for_each_entry_safe(indication, tmp, &service->indications, list) {
+		if (qmi_ind != indication->qmi_ind)
+			continue;
+
+		if (indication->cb) {
+			indication->cb(service, msg, indication->cb_data);
+			handled = true;
+		}
+	}
+
+	return handled ? 0 : 1;
 }

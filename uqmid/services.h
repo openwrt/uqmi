@@ -51,6 +51,23 @@ struct qmi_service {
 
 	/* contains all pending requests */
 	struct list_head reqs;
+
+	/* contains indication registers
+	 * a sorted llist by qmi msg id
+	 */
+	struct list_head indications;
+};
+
+typedef void (*indication_cb)(struct qmi_service *service, struct qmi_msg *msg, void *data);
+struct qmi_indication {
+	/* a sorted linked list by qmi_ind in indications */
+	struct list_head list;
+	/* qmi_ind the qmi message id.
+	 * Multiple callbacks can receive the same indication
+	 */
+	uint16_t qmi_ind;
+	indication_cb cb;
+	void *cb_data;
 };
 
 struct qmi_service *uqmi_service_find(struct qmi_dev *qmi, int service_id);
@@ -69,5 +86,11 @@ struct qmi_service *uqmi_service_create(struct qmi_dev *qmi, int service_id);
 /* callback for the ctrl when allocating the client id */
 void uqmi_service_get_client_id_cb(struct qmi_service *service, uint16_t client_id);
 void uqmi_service_close_cb(struct qmi_service *service);
+
+/* indications */
+
+int uqmi_service_register_indication(struct qmi_service *service, uint16_t indication, indication_cb cb, void *cb_data);
+int uqmi_service_remove_indication(struct qmi_service *service, uint16_t indication, indication_cb cb, void *cb_data);
+int uqmi_service_handle_indication(struct qmi_service *service, struct qmi_msg *msg);
 
 #endif /* __UQMID_QMI_DEV_H */

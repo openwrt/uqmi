@@ -53,23 +53,29 @@ qmi_process_msg(struct qmi_dev *qmi, struct qmi_msg *msg)
 	struct qmi_service *service;
 	struct qmi_request *req;
 	uint16_t tid;
+	bool resp, ind;
 
-	/* FIXME: indications? */
-
-	if (msg->qmux.service == QMI_SERVICE_CTL)
+	if (msg->qmux.service == QMI_SERVICE_CTL) {
 		modem_log(qmi->modem, LOGL_DEBUG, "Process message from srv %d msg %04x flag: %02x tid: %02x",
 			  msg->qmux.service, le16_to_cpu(msg->ctl.message), msg->flags, msg->ctl.transaction);
-	else
+		tid = msg->ctl.transaction;
+		ind = msg->flags & QMI_CTL_FLAG_INDICATION;
+		resp = msg->flags & QMI_CTL_FLAG_RESPONSE;
+		if (!ind && !resp) {
+			/* TODO: error_log("Invalid message received") */
+			return;
+		}
+	} else {
 		modem_log(qmi->modem, LOGL_DEBUG, "Process message from srv %d msg %04x flag: %02x tid: %04x",
 			  msg->qmux.service, le16_to_cpu(msg->svc.message), msg->flags, msg->svc.transaction);
-
-	if (msg->flags != QMI_CTL_FLAG_RESPONSE && msg->flags != QMI_SERVICE_FLAG_RESPONSE)
-		return;
-
-	if (msg->qmux.service == QMI_SERVICE_CTL)
-		tid = msg->ctl.transaction;
-	else
 		tid = le16_to_cpu(msg->svc.transaction);
+		ind = msg->flags & QMI_SERVICE_FLAG_INDICATION;
+		resp = msg->flags & QMI_SERVICE_FLAG_RESPONSE;
+		if (!ind && !resp) {
+			/* TODO: error_log("Invalid message received") */
+			return;
+		}
+	}
 
 	service = uqmi_service_find(qmi, msg->qmux.service);
 	if (!service) {
@@ -77,12 +83,19 @@ qmi_process_msg(struct qmi_dev *qmi, struct qmi_msg *msg)
 		return;
 	}
 
-	list_for_each_entry(req, &service->reqs, list) {
-		if (req->tid != tid)
-			continue;
+	/* Hopefully an indication *and* response isn't possible */
+	if (ind) {
+		uqmi_service_handle_indication(service, msg);
+	}
 
-		__qmi_request_complete(service, req, msg);
-		return;
+	if (resp) {
+		list_for_each_entry(req, &service->reqs, list) {
+			if (req->tid != tid)
+				continue;
+
+			__qmi_request_complete(service, req, msg);
+			return;
+		}
 	}
 
 	/* error_log("Couldn't find a tid for incoming message") */
@@ -221,4 +234,3 @@ void qmi_device_close(struct qmi_dev *qmi, int timeout_ms)
 		uloop_timeout_set(&qmi->shutdown, timeout_ms);
 	}
 }
-
