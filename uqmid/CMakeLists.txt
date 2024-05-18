@@ -1,7 +1,7 @@
 
 SET(UQMID_LIBS ${talloc_library} ${ubus_library})
 
-SET(UQMID uqmid.c ddev.c ubus.c modem.c modem_fsm.c modem_tx.c services.c sim.c ctrl.c)
+SET(UQMID uqmid.c ddev.c ubus.c modem.c modem_fsm.c modem_tx.c services.c sim.c ctrl.c wwan.c)
 
 ADD_SUBDIRECTORY(osmocom)
 ADD_EXECUTABLE(uqmid ${UQMID})

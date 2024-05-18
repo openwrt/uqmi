@@ -39,11 +39,29 @@ struct modem_config {
 	uint8_t pdp_type;
 };
 
+struct wwan_conf {
+	bool raw_ip;
+	bool pass_through;
+};
+
 struct modem {
 	char *name;
+	/*! path to the device. /dev/cdc-wdm */
 	char *device;
 	char imei[IMEI_LEN];
 	char path[PATH_LEN];
+
+	/* Either usb or usbmisc of cdc-wdm0 */
+	char *subsystem_name;
+	struct {
+		/* network device name. e.g. wwan0 */
+		char *dev;
+		char *sysfs;
+		struct wwan_conf config;
+
+		/* uqmid won't do any sysfs/kernel configuration */
+		bool skip_configuration;
+	} wwan;
 
 	char *manuf;
 	char *model;
