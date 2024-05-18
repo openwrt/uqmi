@@ -38,6 +38,33 @@
 
 #include "modem_tx.h"
 
+/* TODO: add qmap */
+/* TODO: check when we have to use the endpoint number (usb) */
+int
+tx_wda_set_data_format(struct modem *modem, struct qmi_service *wda, request_cb cb)
+{
+	struct qmi_request *req = talloc_zero(wda, struct qmi_request);
+	struct qmi_msg *msg = talloc_zero_size(req, 1024);
+
+	struct qmi_wda_set_data_format_request set_data_format_req = { 0 };
+	qmi_set(&set_data_format_req, qos_format, false);
+	qmi_set(&set_data_format_req, link_layer_protocol, QMI_WDA_LINK_LAYER_PROTOCOL_RAW_IP);
+	qmi_set(&set_data_format_req, downlink_data_aggregation_protocol, QMI_WDA_DATA_AGGREGATION_PROTOCOL_DISABLED);
+	qmi_set(&set_data_format_req, uplink_data_aggregation_protocol, QMI_WDA_DATA_AGGREGATION_PROTOCOL_DISABLED);
+
+	int ret = qmi_set_wda_set_data_format_request(msg, &set_data_format_req);
+	if (ret) {
+		modem_log(modem, LOGL_ERROR, "Failed to encode set_data_format_req");
+		return 1;
+	}
+
+	req->msg = msg;
+	req->cb = cb;
+	req->cb_data = modem;
+	return uqmi_service_send_msg(wda, req);
+}
+
+
 int tx_dms_set_operating_mode(struct modem *modem, struct qmi_service *dms, uint8_t operating_mode, request_cb cb)
 {
 	struct qmi_request *req = talloc_zero(dms, struct qmi_request);

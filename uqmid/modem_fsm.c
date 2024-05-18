@@ -16,9 +16,10 @@
 #include "utils.h"
 
 #include "modem.h"
-#include "services.h"
 #include "modem_fsm.h"
 #include "modem_tx.h"
+#include "services.h"
+#include "wwan.h"
 
 #define S(x) (1 << (x))
 
@@ -26,6 +27,8 @@
 /* Timeouts periods in seconds */
 #define T_GET_VERSION_S 5
 #define T_SYNC_S 3
+/* default timeout */
+#define T_DEFAULT_S 5
 
 /* Timeout number */
 
@@ -722,10 +725,119 @@ static void modem_st_configure_modem(struct osmo_fsm_inst *fi, uint32_t event, v
 		}
 		break;
 	case MODEM_EV_RX_MODIFIED_PROFILE:
-		osmo_fsm_inst_state_chg(fi, MODEM_ST_POWERON, 0, 0);
+		/* configure the physical kernel interface */
+		osmo_fsm_inst_state_chg(fi, MODEM_ST_CONFIGURE_KERNEL, T_DEFAULT_S, 0);
 		break;
 	}
 	/* TODO: check if this is the default profile! */
+}
+
+
+static void wda_set_data_format_cb(struct qmi_service *service, struct qmi_request *req, struct qmi_msg *msg)
+{
+	struct modem *modem = req->cb_data;
+	int ret = 0;
+	struct qmi_wda_set_data_format_response res = {};
+
+	if (req->ret) {
+		modem_log(modem, LOGL_ERROR, "Failed to set data format. Status %d/%s.", req->ret, qmi_get_error_str(req->ret));
+		osmo_fsm_inst_dispatch(modem->fi, MODEM_EV_RX_FAILED, NULL);
+		return;
+	}
+
+	ret = qmi_parse_wda_set_data_format_response(msg, &res);
+	if (ret) {
+		modem_log(modem, LOGL_ERROR, "Failed to set data format. Failed to parse message");
+		osmo_fsm_inst_dispatch(modem->fi, MODEM_EV_RX_FAILED, NULL);
+		return;
+	}
+
+	if (!res.set.link_layer_protocol) {
+		modem_log(modem, LOGL_ERROR, "Failed to set data format. Link layer protocol TLV missing");
+		osmo_fsm_inst_dispatch(modem->fi, MODEM_EV_RX_FAILED, NULL);
+		return;
+	}
+
+	/* currently uqmid only supports raw-ip */
+	if (res.data.link_layer_protocol != QMI_WDA_LINK_LAYER_PROTOCOL_RAW_IP) {
+		modem_log(modem, LOGL_ERROR, "Failed to set data format. Link layer protocol TLV missing");
+		osmo_fsm_inst_dispatch(modem->fi, MODEM_EV_RX_FAILED, NULL);
+		return;
+	}
+
+	osmo_fsm_inst_dispatch(modem->fi, MODEM_EV_RX_SUCCEED, (void *) (long) msg->svc.message);
+}
+
+/* Configure the kernel network interface */
+static void modem_st_configure_kernel_onenter(struct osmo_fsm_inst *fi, uint32_t old_state)
+{
+	struct modem *modem = fi->priv;
+	struct qmi_service *wda = uqmi_service_find(modem->qmi, QMI_SERVICE_WDA);
+
+	if (modem->wwan.skip_configuration) {
+		tx_wda_set_data_format(modem, wda, wda_set_data_format_cb);
+		return;
+	}
+
+	/* when using raw-ip later with QMAP support, ensure the mtu is at the maximum of the USB transfer */
+	int ret = wwan_refresh_device(modem);
+	if (ret) {
+		modem_log(modem, LOGL_ERROR, "Failed to get wwan device. err %d", ret);
+		return;
+	}
+
+	ret = wwan_ifupdown(modem->wwan.dev, 0);
+	if (ret) {
+		modem_log(modem, LOGL_ERROR, "Failed to bring down wwan device. err %d", ret);
+		return;
+	}
+
+	modem->wwan.config.pass_through = false;
+	modem->wwan.config.raw_ip = false;
+	ret = wwan_set_configuration(modem->wwan.sysfs, &modem->wwan.config);
+	if (ret) {
+		modem_log(modem, LOGL_ERROR, "Failed to set qmi configuration. err %d", ret);
+		return;
+	}
+
+	ret = wwan_set_mtu(modem->wwan.dev, 1500);
+	if (ret) {
+		modem_log(modem, LOGL_ERROR, "Failed to set mtu. err %d", ret);
+		return;
+	}
+
+	modem->wwan.config.pass_through = false;
+	modem->wwan.config.raw_ip = true;
+	ret = wwan_set_configuration(modem->wwan.sysfs, &modem->wwan.config);
+	if (ret) {
+		modem_log(modem, LOGL_ERROR, "Failed to set qmi configuration (final). err %d", ret);
+		return;
+	}
+
+	ret = wwan_ifupdown(modem->wwan.dev, 1);
+	if (ret) {
+		modem_log(modem, LOGL_ERROR, "Failed to bring up wwan device. err %d", ret);
+		return;
+	}
+
+	tx_wda_set_data_format(modem, wda, wda_set_data_format_cb);
+}
+
+
+static void modem_st_configure_kernel(struct osmo_fsm_inst *fi, uint32_t event, void *data)
+{
+	long msg = (long) data;
+
+	switch (event) {
+	case MODEM_EV_RX_SUCCEED:
+		/* Wrong message handler */
+		/* TODO: generate and use WDA Message defines */
+		if (msg != 0x0020)
+			break;
+
+		osmo_fsm_inst_state_chg(fi, MODEM_ST_POWERON, 0, 0);
+		break;
+	}
 }
 
 static void modem_st_poweron_onenter(struct osmo_fsm_inst *fi, uint32_t old_state)
@@ -1178,10 +1290,17 @@ static const struct osmo_fsm_state modem_states[] = {
 		.in_event_mask = S(MODEM_EV_RX_CONFIGURED)
 				 | S(MODEM_EV_RX_GET_PROFILE_LIST)
 				 | S(MODEM_EV_RX_MODIFIED_PROFILE),
-		.out_state_mask = S(MODEM_ST_POWERON) | S(MODEM_ST_DESTROY),
+		.out_state_mask = S(MODEM_ST_CONFIGURE_KERNEL) | S(MODEM_ST_DESTROY),
 		.name = "CONFIGURE_MODEM",
 		.action = modem_st_configure_modem,
 		.onenter = modem_st_configure_modem_onenter,
+	},
+	[MODEM_ST_CONFIGURE_KERNEL] = {
+		.in_event_mask = S(MODEM_EV_RX_SUCCEED),
+		.out_state_mask = S(MODEM_ST_POWERON) | S(MODEM_ST_DESTROY),
+		.name = "CONFIGURE_KERNEL",
+		.action = modem_st_configure_kernel,
+		.onenter = modem_st_configure_kernel_onenter,
 	},
 	[MODEM_ST_POWERON] = {
 		.in_event_mask = S(MODEM_EV_RX_POWEROFF)
