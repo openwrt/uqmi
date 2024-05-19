@@ -22,6 +22,7 @@
 #include <stdio.h>
 
 #include <libubus.h>
+#include <talloc.h>
 
 #include "uqmid.h"
 #include "logging.h"
@@ -169,11 +170,6 @@ static int remove_modem(struct ubus_context *ctx, struct ubus_object *obj, struc
 /** clean up the ubus state of a modem */
 void uqmid_ubus_modem_destroy(struct modem *modem)
 {
-	if (!modem->ubus.name)
-		return;
-
-	free((void *)modem->ubus.name);
-	modem->ubus.name = NULL;
 	ubus_remove_object(ubus_ctx, &modem->ubus);
 }
 
@@ -257,17 +253,13 @@ static int modem_configure(struct ubus_context *ctx, struct ubus_object *obj, st
 	memset(&modem->config, 0, sizeof(struct modem_config));
 	blobmsg_parse(modem_configure_policy, __CFG_MAX, tb, blob_data(msg), blob_len(msg));
 	if (tb[CFG_APN]) {
-		if (modem->config.apn) {
-			free(modem->config.apn);
-		}
-		modem->config.apn = strdup(blobmsg_get_string(tb[CFG_APN]));
+		TALLOC_FREE(modem->config.apn);
+		modem->config.apn = talloc_strdup(modem, blobmsg_get_string(tb[CFG_APN]));
 	}
 
 	if (tb[CFG_PIN]) {
-		if (modem->config.pin) {
-			free(modem->config.pin);
-		}
-		modem->config.pin = strdup(blobmsg_get_string(tb[CFG_APN]));
+		TALLOC_FREE(modem->config.pin);
+		modem->config.pin = talloc_strdup(modem, blobmsg_get_string(tb[CFG_APN]));
 	}
 
 	if (tb[CFG_ROAMING]) {
@@ -416,19 +408,15 @@ static struct ubus_object modem_object = {
 int uqmid_ubus_modem_add(struct modem *modem)
 {
 	struct ubus_object *obj = &modem->ubus;
-	char *name = NULL;
 	int ret = 0;
 
-	if (asprintf(&name, "%s.modem.%s", main_object.name, modem->name) == -1)
-		return -ENOMEM;
-
-	obj->name = name;
+	obj->name = talloc_asprintf(modem, "%s.modem.%s", main_object.name, modem->name);
 	obj->type = &modem_instance_object_type;
 	obj->methods = modem_instance_object_methods;
 	obj->n_methods = ARRAY_SIZE(modem_instance_object_methods);
 	if ((ret = ubus_add_object(ubus_ctx, &modem->ubus))) {
 		LOG_ERROR("failed to publish ubus object for modem '%s' (ret = %d).\n", modem->name, ret);
-		free(name);
+		talloc_free((void *)obj->name);
 		obj->name = NULL;
 		return ret;
 	}
