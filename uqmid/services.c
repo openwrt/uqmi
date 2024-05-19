@@ -14,6 +14,7 @@
 #include "services.h"
 #include "uqmid.h"
 
+#include "gsmtap_util.h"
 
 #ifdef DEBUG_PACKET
 static void dump_packet(const char *prefix, void *ptr, int len)
@@ -113,6 +114,7 @@ _service_send_request(struct qmi_service *service, struct qmi_request *req)
 			  msg->qmux.service, le16_to_cpu(msg->svc.message), msg->flags, le16_to_cpu(msg->svc.transaction));
 
 	dump_packet("Send packet", msg, len);
+	gsmtap_send(service->qmi->modem, msg, len);
 	ustream_write(&service->qmi->sf.stream, (void *) msg, len, false);
 
 	return 0;

@@ -16,6 +16,7 @@
 #include "logging.h"
 #include "services.h"
 #include "modem.h"
+#include "gsmtap_util.h"
 
 /* FIXME: decide dump_packet */
 #define dump_packet(str, buf, len)
@@ -126,6 +127,7 @@ static void qmi_notify_read(struct ustream *us, int bytes)
 		if (len < msg_len)
 			return;
 
+		gsmtap_send(qmi->modem, msg, msg_len);
 		qmi_process_msg(qmi, msg);
 		ustream_consume(us, msg_len);
 	}
