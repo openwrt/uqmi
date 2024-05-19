@@ -14,6 +14,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+#include "gsmtap_util.h"
 #include "osmocom/fsm.h"
 #include "qmi-enums-wds.h"
 
@@ -61,6 +62,42 @@ static int uqmid_handle_reload(struct ubus_context *ctx, struct ubus_object *obj
 	if (uqmid_reload())
 		return UBUS_STATUS_NOT_FOUND;
 
+	return UBUS_STATUS_OK;
+}
+
+enum {
+	GSMTAP_TARGET,
+	__GSMTAP_MAX
+};
+
+static const struct blobmsg_policy enable_gsmtap_policy[__GSMTAP_MAX] = {
+	[GSMTAP_TARGET] = { .name = "target", .type = BLOBMSG_TYPE_STRING },
+};
+
+static int enable_gsmtap(struct ubus_context *ctx, struct ubus_object *obj, struct ubus_request_data *req,
+			 const char *method, struct blob_attr *msg)
+{
+	struct blob_attr *tb[__GSMTAP_MAX];
+	char *target = NULL;
+	int ret;
+
+	blobmsg_parse(enable_gsmtap_policy, __GSMTAP_MAX, tb, blob_data(msg), blob_len(msg));
+	if (tb[GSMTAP_TARGET]) {
+		target = blobmsg_get_string(tb[GSMTAP_TARGET]);
+	} else {
+		target = "127.0.0.1";
+	}
+	ret = gsmtap_enable(target);
+	if (ret)
+		return UBUS_STATUS_UNKNOWN_ERROR;
+
+	return UBUS_STATUS_OK;
+}
+
+static int disable_gsmtap_policy(struct ubus_context *ctx, struct ubus_object *obj, struct ubus_request_data *req,
+				 const char *method, struct blob_attr *msg)
+{
+	gsmtap_disable();
 	return UBUS_STATUS_OK;
 }
 
@@ -204,6 +241,8 @@ static void uqmid_ubus_connection_lost(struct ubus_context *ctx)
 static struct ubus_method main_object_methods[] = {
 	{ .name = "restart", .handler = uqmid_handle_restart },
 	{ .name = "reload", .handler = uqmid_handle_reload },
+	UBUS_METHOD("enable_gsmtap", enable_gsmtap, enable_gsmtap_policy),
+	{ .name = "disable_gsmtap", .handler = disable_gsmtap_policy },
 	UBUS_METHOD("add_modem", add_modem, add_modem_policy),
 	UBUS_METHOD("remove_modem", remove_modem, remove_modem_policy),
 };
