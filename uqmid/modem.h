@@ -34,6 +34,8 @@
 struct modem_config {
 	bool configured;
 	char *apn;
+	char *username;
+	char *password;
 	char *pin;
 	bool roaming;
 	uint8_t pdp_type;

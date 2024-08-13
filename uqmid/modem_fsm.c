@@ -721,7 +721,8 @@ static void modem_st_configure_modem(struct osmo_fsm_inst *fi, uint32_t event, v
 			/* failed to get profile list/generate a new profile */
 		} else {
 			tx_wds_modify_profile(modem, wds, wds_modify_profile_cb, modem->qmi->wds.profile_id,
-					      modem->config.apn, modem->config.pdp_type);
+					      modem->config.apn, modem->config.pdp_type, modem->config.username,
+					      modem->config.password);
 		}
 		break;
 	case MODEM_EV_RX_MODIFIED_PROFILE:
