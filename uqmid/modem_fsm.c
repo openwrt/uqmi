@@ -304,7 +304,7 @@ static void modem_st_get_model(struct osmo_fsm_inst *fi, uint32_t event, void *d
 		uqmi_service_send_simple(service, qmi_set_dms_get_revision_request, get_revision_cb, modem);
 		break;
 	case MODEM_EV_RX_REVISION:
-		osmo_fsm_inst_state_chg(fi, MODEM_ST_GET_IMSI, 0, 0);
+		osmo_fsm_inst_state_chg(fi, MODEM_ST_GET_IMSI, 3, 0);
 		break;
 	}
 }
