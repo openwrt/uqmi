@@ -129,7 +129,7 @@ int tx_wds_get_profile_list(struct modem *modem, struct qmi_service *wds, reques
 }
 
 int tx_wds_modify_profile(struct modem *modem, struct qmi_service *wds, request_cb cb, uint8_t profile, const char *apn,
-			  uint8_t pdp_type)
+			  uint8_t pdp_type, const char *username, const char *password)
 {
 	struct qmi_request *req = talloc_zero(wds, struct qmi_request);
 	struct qmi_msg *msg = talloc_zero_size(req, 1024);
@@ -142,7 +142,11 @@ int tx_wds_modify_profile(struct modem *modem, struct qmi_service *wds, request_
 	qmi_set(&profile_req, pdp_type, pdp_type);
 
 	if (apn)
-		profile_req.data.apn_name = (char *) apn;
+		profile_req.data.apn_name = (char *)apn;
+	if (username)
+		profile_req.data.username = (char *)username;
+	if (password)
+		profile_req.data.password = (char *)password;
 
 	int ret = qmi_set_wds_modify_profile_request(msg, &profile_req);
 	if (ret) {

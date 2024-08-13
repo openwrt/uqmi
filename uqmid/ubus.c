@@ -233,13 +233,15 @@ static int modem_remove(struct ubus_context *ctx, struct ubus_object *obj, struc
 	return UBUS_STATUS_OK;
 }
 
-enum { CFG_APN, CFG_PIN, CFG_ROAMING, __CFG_MAX };
+enum { CFG_APN, CFG_PIN, CFG_ROAMING, CFG_USERNAME, CFG_PASSWORD, __CFG_MAX };
 
 /** ubus call modem_configure{apn: internet, pin: 2342, roaming: false}` */
 static const struct blobmsg_policy modem_configure_policy[__CFG_MAX] = {
 	[CFG_APN] = { .name = "apn", .type = BLOBMSG_TYPE_STRING },
 	[CFG_PIN] = { .name = "pin", .type = BLOBMSG_TYPE_STRING },
 	[CFG_ROAMING] = { .name = "roaming", .type = BLOBMSG_TYPE_BOOL },
+	[CFG_USERNAME] = { .name = "username", .type = BLOBMSG_TYPE_STRING },
+	[CFG_PASSWORD] = { .name = "password", .type = BLOBMSG_TYPE_STRING },
 };
 
 static int modem_configure(struct ubus_context *ctx, struct ubus_object *obj, struct ubus_request_data *req,
@@ -269,6 +271,20 @@ static int modem_configure(struct ubus_context *ctx, struct ubus_object *obj, st
 
 	if (tb[CFG_ROAMING]) {
 		modem->config.roaming = blobmsg_get_bool(tb[CFG_ROAMING]);
+	}
+
+	if (tb[CFG_USERNAME]) {
+		TALLOC_FREE(modem->config.username);
+		value = blobmsg_get_string(tb[CFG_USERNAME]);
+		if (value && strlen(value))
+			modem->config.username = talloc_strdup(modem, blobmsg_get_string(tb[CFG_USERNAME]));
+	}
+
+	if (tb[CFG_PASSWORD]) {
+		TALLOC_FREE(modem->config.password);
+		value = blobmsg_get_string(tb[CFG_PASSWORD]);
+		if (value && strlen(value))
+			modem->config.password = talloc_strdup(modem, blobmsg_get_string(tb[CFG_PASSWORD]));
 	}
 
 	modem->config.pdp_type = QMI_WDS_PDP_TYPE_IPV4;
