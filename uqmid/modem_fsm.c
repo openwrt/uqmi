@@ -461,7 +461,7 @@ static void dms_get_imsi_cb(struct qmi_service *service, struct qmi_request *req
 	osmo_fsm_inst_dispatch(modem->fi, MODEM_EV_RX_IMSI, NULL);
 }
 
-static void modem_st_get_imsi_onenter(struct osmo_fsm_inst *fi, uint32_t old_state)
+static void tx_get_imsi_req(struct osmo_fsm_inst *fi, uint32_t old_state)
 {
 	struct modem *modem = fi->priv;
 	struct qmi_service *uim = uqmi_service_find(modem->qmi, QMI_SERVICE_UIM);
@@ -483,6 +483,12 @@ static void modem_st_get_imsi_onenter(struct osmo_fsm_inst *fi, uint32_t old_sta
 		uqmi_service_send_simple(dms, qmi_set_dms_uim_get_imsi_request, dms_get_imsi_cb, modem);
 		return;
 	}
+}
+
+static void modem_st_get_imsi_onenter(struct osmo_fsm_inst *fi, uint32_t old_state)
+{
+	fi->N = 0;
+	tx_get_imsi_req(fi, old_state);
 }
 
 static void modem_st_get_imsi(struct osmo_fsm_inst *fi, uint32_t event, void *data)
@@ -1183,6 +1189,11 @@ static int modem_fsm_timer_cb(struct osmo_fsm_inst *fi)
 			return 1;
 		}
 		uqmi_service_send_simple(service, qmi_set_nas_get_serving_system_request, get_serving_system_cb, modem);
+		osmo_timer_schedule(&fi->timer, NAS_SERVICE_POLL_TIMEOUT_S, 0);
+		break;
+	case MODEM_ST_GET_IMSI:
+		fi->N++;
+		tx_get_imsi_req(fi, MODEM_ST_GET_IMSI);
 		osmo_timer_schedule(&fi->timer, NAS_SERVICE_POLL_TIMEOUT_S, 0);
 		break;
 	case MODEM_ST_START_IFACE:
