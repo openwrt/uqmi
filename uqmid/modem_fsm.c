@@ -1,4 +1,6 @@
 
+#include <assert.h>
+
 #include "osmocom/fsm.h"
 #include "osmocom/utils.h"
 
@@ -67,6 +69,8 @@ static const struct value_string modem_event_names[] = {
 
 	{ MODEM_EV_RX_SUBSCRIBED,		"RX_SUBSCRIBED" },
 	{ MODEM_EV_RX_SUBSCRIBE_FAILED,		"RX_SUBSCRIBE_FAILED" },
+
+	{ MODEM_EV_RX_DISABLE_AUTOCONNECT_SUCCESS, "RX_DISABLE_AUTOCONNECT_SUCCESS"},
 
 	{ MODEM_EV_RX_FAILED,			"RX_FAILED" },
 	{ MODEM_EV_RX_SUCCEED,			"RX_SUCCEED" },
@@ -805,6 +809,22 @@ static void wds_start_network_cb(struct qmi_service *service, struct qmi_request
 	}
 }
 
+static void
+wds_stop_network_cb(struct qmi_service *service, struct qmi_request *req, struct qmi_msg *msg)
+{
+	struct modem *modem = req->cb_data;
+	int ret;
+
+	ret = qmi_parse_wds_stop_network_response(msg);
+	if (ret) {
+		modem_log(modem, LOGL_INFO, "Failed to stop network.");
+		osmo_fsm_inst_dispatch(modem->fi, MODEM_EV_RX_FAILED, NULL);
+		return;
+	}
+
+	osmo_fsm_inst_dispatch(modem->fi, MODEM_EV_RX_DISABLE_AUTOCONNECT_SUCCESS, NULL);
+}
+
 static void modem_st_start_iface_onenter(struct osmo_fsm_inst *fi, uint32_t old_state)
 {
 	struct modem *modem = fi->priv;
@@ -816,15 +836,31 @@ static void modem_st_start_iface(struct osmo_fsm_inst *fi, uint32_t event, void 
 {
 	struct modem *modem = fi->priv;
 	long reason;
+	bool disable_autoconnect = true;
+	struct qmi_service *wds = uqmi_service_find(modem->qmi, QMI_SERVICE_WDS);
+	/* FIXME: ensure essential services "can't" disappear or abort the FSM nicely */
+	assert(wds);
 
 	switch (event) {
+	case MODEM_EV_RX_DISABLE_AUTOCONNECT_SUCCESS:
+		tx_wds_start_network(modem, wds, wds_start_network_cb, modem->qmi->wds.profile_id, modem->qmi->wds.ip_family);
+		break;
 	case MODEM_EV_RX_FAILED:
-		reason = (long)data;
-		if (reason == QMI_PROTOCOL_ERROR_CALL_FAILED) {
+		reason = (long) data;
+		switch (reason) {
+		case QMI_PROTOCOL_ERROR_CALL_FAILED:
 			fi->T = N_RESEND;
-		} else {
+			break;
+		case QMI_PROTOCOL_ERROR_NO_EFFECT:
+			/* No effect means it already started a connection,
+			 * but we didn't got packet_data_handle out of it.
+			 */
+			tx_wds_stop_network(modem, wds, wds_stop_network_cb, 0xffffffff, &disable_autoconnect);
+			break;
+		default:
 			uqmid_modem_set_error(modem, "Start Iface/Network failed!");
 			osmo_fsm_inst_state_chg(fi, MODEM_ST_POWEROFF, 0, 0);
+			break;
 		}
 		break;
 	case MODEM_EV_RX_SUCCEED:
@@ -1115,7 +1151,8 @@ static const struct osmo_fsm_state modem_states[] = {
 	},
 	[MODEM_ST_START_IFACE] = {
 		.in_event_mask = S(MODEM_EV_RX_SUCCEED)
-				 | S(MODEM_EV_RX_FAILED),
+				 | S(MODEM_EV_RX_FAILED)
+				 | S(MODEM_EV_RX_DISABLE_AUTOCONNECT_SUCCESS),
 		.out_state_mask = S(MODEM_ST_LIVE) | S(MODEM_ST_DESTROY) | S(MODEM_ST_POWEROFF),
 		.name = "START_IFACE",
 		.action = modem_st_start_iface,
