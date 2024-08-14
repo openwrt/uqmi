@@ -171,6 +171,7 @@ int tx_wds_start_network(struct modem *modem, struct qmi_service *wds, request_c
 	struct qmi_wds_start_network_request start_req = {};
 	qmi_set(&start_req, profile_index_3gpp, profile_idx);
 	qmi_set(&start_req, ip_family_preference, ip_family);
+	qmi_set(&start_req, enable_autoconnect, false);
 
 	int ret = qmi_set_wds_start_network_request(msg, &start_req);
 	if (ret) {
