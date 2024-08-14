@@ -148,6 +148,8 @@ int tx_wds_modify_profile(struct modem *modem, struct qmi_service *wds, request_
 	if (password)
 		profile_req.data.password = (char *)password;
 
+	qmi_set(&profile_req, roaming_disallowed_flag, !modem->config.roaming);
+
 	int ret = qmi_set_wds_modify_profile_request(msg, &profile_req);
 	if (ret) {
 		LOG_ERROR("Failed to encode get profile list");
