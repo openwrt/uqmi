@@ -185,6 +185,32 @@ int tx_wds_start_network(struct modem *modem, struct qmi_service *wds, request_c
 	return uqmi_service_send_msg(wds, req);
 }
 
+int tx_wds_stop_network(struct modem *modem, struct qmi_service *wds, request_cb cb, uint32_t *packet_data_handle,
+			bool *disable_autoconnect)
+{
+	struct qmi_request *req = talloc_zero(wds, struct qmi_request);
+	struct qmi_msg *msg = talloc_zero_size(req, 1024);
+
+	struct qmi_wds_stop_network_request stop_req = {};
+
+	if (packet_data_handle)
+		qmi_set(&stop_req, packet_data_handle, *packet_data_handle);
+
+	if (disable_autoconnect)
+		qmi_set(&stop_req, disable_autoconnect, *disable_autoconnect);
+
+	int ret = qmi_set_wds_stop_network_request(msg, &stop_req);
+	if (ret) {
+		LOG_ERROR("Failed to encode start network request");
+		return 1;
+	}
+
+	req->msg = msg;
+	req->cb = cb;
+	req->cb_data = modem;
+	return uqmi_service_send_msg(wds, req);
+}
+
 int tx_wds_get_current_settings(struct modem *modem, struct qmi_service *wds, request_cb cb)
 {
 	struct qmi_request *req = talloc_zero(wds, struct qmi_request);
