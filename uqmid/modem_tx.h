@@ -18,6 +18,8 @@ int tx_wds_modify_profile(struct modem *modem, struct qmi_service *wds, request_
 			  uint8_t pdp_type, const char *username, const char *password);
 int tx_wds_start_network(struct modem *modem, struct qmi_service *wds, request_cb cb, uint8_t profile_idx,
 			 uint8_t ip_family);
+int tx_wds_stop_network(struct modem *modem, struct qmi_service *wds, request_cb cb, uint32_t *packet_data_handle,
+			bool *disable_autoconnect);
 int tx_wds_get_current_settings(struct modem *modem, struct qmi_service *wds, request_cb cb);
 
 #endif /* __UQMID_MODEM_TX_H */
