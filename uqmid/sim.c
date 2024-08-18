@@ -21,6 +21,10 @@
 
 #include "sim.h"
 #include "qmi-enums-uim.h"
+#include "osmocom/utils.h"
+
+#include <errno.h>
+#include <stdbool.h>
 
 enum uqmi_sim_state uim_card_application_state_to_uqmi_state(int app_state)
 {
@@ -56,4 +60,29 @@ enum uqmi_sim_state uim_pin_to_uqmi_state(int upin_state)
 	default:
 		return UQMI_SIM_UNKNOWN;
 	}
+}
+
+int uqmi_sim_decode_imsi(uint8_t *imsi_ef, uint8_t imsi_ef_size, char *imsi_str, uint8_t imsi_str_len)
+{
+	uint8_t imsi_len;
+	uint8_t imsi_enc_len;
+	uint8_t oe;
+	// int offset = 0, i;
+	if (imsi_ef_size < 9)
+		return -EINVAL;
+
+	imsi_enc_len = imsi_ef[0];
+	if (imsi_enc_len > 8 || imsi_enc_len == 0)
+		return -EINVAL;
+
+	imsi_len = imsi_enc_len * 2 - 1;
+	oe = (imsi_ef[1] >> 3) & 0x1;
+	if (!oe)
+		imsi_len--;
+
+	/* additional 0 byte */
+	if (imsi_str_len < imsi_len + 1)
+		return -ENOMEM;
+
+	return osmo_bcd2str(imsi_str, imsi_str_len, imsi_ef + 1, 1, imsi_len + 1, false);
 }

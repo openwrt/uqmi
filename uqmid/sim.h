@@ -35,4 +35,6 @@ enum uqmi_sim_state {
 enum uqmi_sim_state uim_card_application_state_to_uqmi_state(int app_state);
 enum uqmi_sim_state uim_pin_to_uqmi_state(int upin_state);
 
+int uqmi_sim_decode_imsi(uint8_t *imsi_ef, uint8_t imsi_ef_size, char *imsi_str, uint8_t imsi_str_len);
+
 #endif /* __UTILS_H */
