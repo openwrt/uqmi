@@ -17,3 +17,9 @@ INSTALL(TARGETS uqmid
 ADD_EXECUTABLE(testgsmtap gsmtap_util.c utils/test_gsmtap.c)
 TARGET_LINK_LIBRARIES(testgsmtap ${LIBS} ${UQMID_LIBS})
 TARGET_INCLUDE_DIRECTORIES(testgsmtap PRIVATE ${ubus_include_dir} ${ubox_include_dir} ${blobmsg_json_include_dir} ${json_include_dir} ${talloc_include_dir} ${CMAKE_SOURCE_DIR})
+
+ADD_EXECUTABLE(test_sim test_sim.c sim.c)
+TARGET_LINK_LIBRARIES(test_sim osmofsm)
+ADD_TEST(NAME TestInstantiator
+         COMMAND TestInstantiator)
+
