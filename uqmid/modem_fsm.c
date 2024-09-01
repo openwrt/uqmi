@@ -830,6 +830,7 @@ static void modem_st_start_iface_onenter(struct osmo_fsm_inst *fi, uint32_t old_
 	struct modem *modem = fi->priv;
 	struct qmi_service *wds = uqmi_service_find(modem->qmi, QMI_SERVICE_WDS);
 
+	fi->N = 0;
 	tx_wds_start_network(modem, wds, wds_start_network_cb, modem->qmi->wds.profile_id, modem->qmi->wds.ip_family);
 }
 static void modem_st_start_iface(struct osmo_fsm_inst *fi, uint32_t event, void *data)
@@ -855,6 +856,7 @@ static void modem_st_start_iface(struct osmo_fsm_inst *fi, uint32_t event, void 
 			/* No effect means it already started a connection,
 			 * but we didn't got packet_data_handle out of it.
 			 */
+			fi->N++;
 			tx_wds_stop_network(modem, wds, wds_stop_network_cb, 0xffffffff, &disable_autoconnect);
 			break;
 		default:
