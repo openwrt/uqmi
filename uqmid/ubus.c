@@ -419,6 +419,8 @@ static int modem_dump_state(struct ubus_context *ctx, struct ubus_object *obj, s
 	BLOBMSG_ADD_STR_CHECK(&b, "model", modem->model);
 	BLOBMSG_ADD_STR_CHECK(&b, "rev", modem->rev);
 	BLOBMSG_ADD_STR_CHECK(&b, "imei", modem->imei);
+	BLOBMSG_ADD_STR_CHECK(&b, "imeisv", modem->imeisv);
+	BLOBMSG_ADD_STR_CHECK(&b, "meid", modem->meid);
 	BLOBMSG_ADD_STR_CHECK(&b, "imsi", modem->imsi);
 	BLOBMSG_ADD_STR_CHECK(&b, "iccid", modem->iccid);
 	/* session state */

@@ -26,9 +26,7 @@
 #include <libubus.h>
 #include <netinet/in.h>
 
-#define IMEI_LEN 15
 #define PATH_LEN 128
-
 
 // try to get osmocom fsm into here?
 struct modem_config {
@@ -46,11 +44,17 @@ struct wwan_conf {
 	bool pass_through;
 };
 
+
 struct modem {
 	char *name;
 	/*! path to the device. /dev/cdc-wdm */
 	char *device;
-	char imei[IMEI_LEN];
+	/*! IMEI including LUN check digit */
+	char *imei;
+	/*! 2 digit software version */
+	char *imeisv;
+	/*! CDMA MEID id - hopefully we never need this */
+	char *meid;
 	char path[PATH_LEN];
 
 	/* Either usb or usbmisc of cdc-wdm0 */
