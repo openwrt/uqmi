@@ -272,6 +272,37 @@ static void get_revision_cb(struct qmi_service *service, struct qmi_request *req
 	osmo_fsm_inst_dispatch(modem->fi, MODEM_EV_RX_REVISION, NULL);
 }
 
+static void get_ids_cb(struct qmi_service *service, struct qmi_request *req, struct qmi_msg *msg)
+{
+	struct modem *modem = req->cb_data;
+	int ret = 0;
+
+	struct qmi_dms_get_ids_response res = {};
+	ret = qmi_parse_dms_get_ids_response(msg, &res);
+
+	if (ret) {
+		/* FIXME: No revision. Ignoring */
+		modem_log(modem, LOGL_ERROR, "Failed to get a IMEI.");
+		osmo_fsm_inst_dispatch(modem->fi, MODEM_EV_RX_IMEI, NULL);
+		return;
+	}
+
+	TALLOC_FREE(modem->meid);
+	TALLOC_FREE(modem->imei);
+	TALLOC_FREE(modem->imeisv);
+
+	if (res.data.meid)
+		modem->meid = talloc_strdup(modem, res.data.meid);
+
+	if (res.data.imei)
+		modem->imei = talloc_strdup(modem, res.data.imei);
+
+	if (res.data.imei_software_version)
+		modem->imeisv = talloc_strdup(modem, res.data.imei_software_version);
+
+	osmo_fsm_inst_dispatch(modem->fi, MODEM_EV_RX_IMEI, NULL);
+}
+
 static void modem_st_get_model_onenter(struct osmo_fsm_inst *fi, uint32_t old_state)
 {
 	struct modem *modem = fi->priv;
@@ -305,6 +336,9 @@ static void modem_st_get_model(struct osmo_fsm_inst *fi, uint32_t event, void *d
 		uqmi_service_send_simple(service, qmi_set_dms_get_revision_request, get_revision_cb, modem);
 		break;
 	case MODEM_EV_RX_REVISION:
+		uqmi_service_send_simple(service, qmi_set_dms_get_ids_request, get_ids_cb, modem);
+		break;
+	case MODEM_EV_RX_IMEI:
 		osmo_fsm_inst_state_chg(fi, MODEM_ST_POWEROFF, 3, 0);
 		break;
 	}
@@ -1082,7 +1116,8 @@ static const struct osmo_fsm_state modem_states[] = {
 	[MODEM_ST_GET_MODEL] = {
 		.in_event_mask = S(MODEM_EV_RX_MODEL) |
 				 S(MODEM_EV_RX_MANUFACTURER) |
-				 S(MODEM_EV_RX_REVISION),
+				 S(MODEM_EV_RX_REVISION) |
+				 S(MODEM_EV_RX_IMEI),
 		.out_state_mask = S(MODEM_ST_POWEROFF) | S(MODEM_ST_DESTROY),
 		.name = "GET_MODEL",
 		.action = modem_st_get_model,
