@@ -70,8 +70,8 @@ struct modem {
 	char *rev;
 
 	/* unsure if iccid should be here */
-	char *iccid;
-	char *imsi;
+	char *iccid; /* FIXME: iccid length is? */
+	char imsi[16];
 
 	struct modem_config config;
 	struct {
@@ -110,11 +110,14 @@ struct modem {
 	} brearer;
 
 	struct {
+		/*! sim_fsm instance */
+		struct osmo_fsm_inst *fi;
 		/* Do we found a valid simcard */
 		bool init;
 		/* Certain modems (and maybe simcards) support either unlocking the sim via pin1 or upin. */
 		enum uqmi_sim_state state;
 		bool use_upin;
+		bool use_uim;
 		bool requires_unlock;
 		int pin_retries;
 		int puk_retries;
@@ -125,6 +128,7 @@ struct modem {
 	struct list_head list;
 	struct ubus_object ubus;
 
+	/*! modem_fsm instance */
 	struct osmo_fsm_inst *fi;
 };
 

@@ -212,3 +212,37 @@ int tx_wds_get_current_settings(struct modem *modem, struct qmi_service *wds, re
 	req->cb_data = modem;
 	return uqmi_service_send_msg(wds, req);
 }
+
+int tx_uim_read_transparent_file(struct modem *modem, struct qmi_service *uim, request_cb cb, uint16_t file_id,
+				 uint8_t *filepath, unsigned int filepath_n)
+{
+	struct qmi_request *req = talloc_zero(uim, struct qmi_request);
+	struct qmi_msg *msg = talloc_zero_size(req, 1024);
+
+	struct qmi_uim_read_transparent_request read_transparent_req = {};
+
+	read_transparent_req.set.file = true;
+	read_transparent_req.data.file.file_id = file_id;
+	read_transparent_req.data.file.file_path = filepath;
+	read_transparent_req.data.file.file_path_n = filepath_n;
+
+	read_transparent_req.set.read_information = true;
+	read_transparent_req.data.read_information.length = 0;
+	read_transparent_req.data.read_information.offset = 0;
+
+	read_transparent_req.set.session = 1;
+	read_transparent_req.data.session.session_type = 0;
+	read_transparent_req.data.session.application_identifier_n = 0;
+	read_transparent_req.data.session.application_identifier = NULL;
+
+	int ret = qmi_set_uim_read_transparent_request(msg, &read_transparent_req);
+	if (ret) {
+		LOG_ERROR("Failed to encode read_transparent_file");
+		return 1;
+	}
+
+	req->msg = msg;
+	req->cb = cb;
+	req->cb_data = modem;
+	return uqmi_service_send_msg(uim, req);
+}

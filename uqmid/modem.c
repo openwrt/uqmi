@@ -33,6 +33,7 @@
 #include "qmi-enums-dms.h"
 #include "qmi-enums-wds.h"
 #include "qmi-enums.h"
+#include "sim_fsm.h"
 #include "uqmid.h"
 #include "qmi-errors.h"
 #include "qmi-errors.c"
@@ -116,8 +117,10 @@ uqmid_modem_add(const char *name, const char *device, bool qmi_over_mbim)
 
 	modem->qmi->error_cb = modem_error_cb;
 	modem->qmi->error_cb_data = modem;
+	modem->sim.use_uim = true;
 
 	modem->fi = modem_fsm_alloc(modem);
+	modem->sim.fi = sim_fsm_alloc(modem);
 	list_add(&modem->list, &uqmid_modems);
 	modem_fsm_start(modem);
 
