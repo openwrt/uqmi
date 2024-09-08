@@ -4,6 +4,7 @@
 
 #include "qmi-enums-dms.h"
 #include "qmi-errors.h"
+#include "sim_fsm.h"
 #include "talloc.h"
 
 #include "qmi-struct.h"
@@ -39,43 +40,36 @@ enum {
 };
 
 static const struct value_string modem_event_names[] = {
-	{ MODEM_EV_REQ_START, "REQ_START" },
-	{ MODEM_EV_REQ_DESTROY, "REQ_DESTROY" },
-	{ MODEM_EV_RX_SYNC, "RX_SYNC" },
-	{ MODEM_EV_RX_VERSION, "RX_VERSION" },
-	{ MODEM_EV_RX_MODEL, "RX_MODEL" },
-	{ MODEM_EV_RX_MANUFACTURER, "RX_MANUFACTURER" },
-	{ MODEM_EV_RX_REVISION, "RX_REVISION" },
+	{ MODEM_EV_REQ_START,			"REQ_START" },
+	{ MODEM_EV_REQ_DESTROY,			"REQ_DESTROY" },
+	{ MODEM_EV_REQ_CONFIGURED,		"REQ_CONFIGURED"},
+	{ MODEM_EV_RX_SYNC,			"RX_SYNC" },
+	{ MODEM_EV_RX_VERSION,			"RX_VERSION" },
+	{ MODEM_EV_RX_MODEL,			"RX_MODEL" },
+	{ MODEM_EV_RX_MANUFACTURER,		"RX_MANUFACTURER" },
+	{ MODEM_EV_RX_REVISION,			"RX_REVISION" },
 
-	{ MODEM_EV_RX_IMSI, "RX_IMSI" },
-	{ MODEM_EV_RX_UIM_FAILED, "RX_UIM_FAILED" },
-	{ MODEM_EV_RX_UIM_GET_SLOT_FAILED, "RX_UIM_GET_SLOT_FAILED" },
-	{ MODEM_EV_RX_UIM_VALID_ICCID, "RX_UIM_VALID_ICCID" },
-	{ MODEM_EV_RX_UIM_NO_UIM_FOUND, "RX_UIM_NO_UIM_FOUND" },
-	{ MODEM_EV_RX_IMSI_DMS_FAILED, "RX_IMSI_DMS_FAILED" },
+	{ MODEM_EV_RX_POWEROFF,			"RX_POWEROFF" },
+	{ MODEM_EV_RX_POWERON,			"RX_POWERON" },
+	{ MODEM_EV_RX_POWERSET,			"RX_POWERSET" },
 
-	{ MODEM_EV_RX_POWEROFF, "RX_POWEROFF" },
-	{ MODEM_EV_RX_POWERON, "RX_POWERON" },
-	{ MODEM_EV_RX_POWERSET, "RX_POWERSET" },
+	{ MODEM_EV_REQ_SIM_TERM,		"RX_SIM_TERM" },
+	{ MODEM_EV_REQ_SIM_FAILURE,		"RX_SIM_FAILURE" },
+	{ MODEM_EV_REQ_SIM_READY,		"RX_SIM_READY" },
 
-	{ MODEM_EV_RX_UNLOCKED_PIN, "RX_UNLOCKED_PIN" },
-	{ MODEM_EV_RX_UIM_PUK_REQUIRED, "RX_UIM_PUK_REQUIRED" },
-	{ MODEM_EV_RX_UIM_PIN_REQUIRED, "RX_UIM_PIN_REQUIRED" },
-	{ MODEM_EV_RX_UIM_READY, "RX_UIM_READY" },
+	{ MODEM_EV_RX_GET_PROFILE_LIST,		"RX_GET_PROFILE_LIST" },
+	{ MODEM_EV_RX_MODIFIED_PROFILE,		"RX_MODIFIED_PROFILE" },
+	{ MODEM_EV_RX_CONFIGURED,		"RX_CONFIGURED" },
 
-	{ MODEM_EV_RX_GET_PROFILE_LIST, "RX_GET_PROFILE_LIST" },
-	{ MODEM_EV_RX_MODIFIED_PROFILE, "RX_MODIFIED_PROFILE" },
-	{ MODEM_EV_RX_CONFIGURED, "RX_CONFIGURED" },
+	{ MODEM_EV_RX_SEARCHING,		"RX_SEARCHING" },
+	{ MODEM_EV_RX_UNREGISTERED,		"RX_UNREGISTERED" },
+	{ MODEM_EV_RX_REGISTERED,		"RX_REGISTERED" },
 
-	{ MODEM_EV_RX_SEARCHING, "RX_SEARCHING" },
-	{ MODEM_EV_RX_UNREGISTERED, "RX_UNREGISTERED" },
-	{ MODEM_EV_RX_REGISTERED, "RX_REGISTERED" },
+	{ MODEM_EV_RX_SUBSCRIBED,		"RX_SUBSCRIBED" },
+	{ MODEM_EV_RX_SUBSCRIBE_FAILED,		"RX_SUBSCRIBE_FAILED" },
 
-	{ MODEM_EV_RX_SUBSCRIBED, "RX_SUBSCRIBED" },
-	{ MODEM_EV_RX_SUBSCRIBE_FAILED, "RX_SUBSCRIBE_FAILED" },
-
-	{ MODEM_EV_RX_FAILED, "RX_FAILED" },
-	{ MODEM_EV_RX_SUCCEED, "RX_SUCCEED" },
+	{ MODEM_EV_RX_FAILED,			"RX_FAILED" },
+	{ MODEM_EV_RX_SUCCEED,			"RX_SUCCEED" },
 	{ 0, NULL }
 };
 
@@ -177,8 +171,11 @@ static void modem_st_get_version_onenter(struct osmo_fsm_inst *fi, uint32_t old_
 
 static void modem_st_get_version(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 {
+	struct modem *modem = fi->priv;
+
 	switch (event) {
 	case MODEM_EV_RX_VERSION:
+		osmo_fsm_inst_dispatch(modem->sim.fi, SIM_EV_REQ_START, NULL);
 		osmo_fsm_inst_state_chg(fi, MODEM_ST_GET_MODEL, 0, 0);
 		break;
 	}
@@ -304,231 +301,7 @@ static void modem_st_get_model(struct osmo_fsm_inst *fi, uint32_t event, void *d
 		uqmi_service_send_simple(service, qmi_set_dms_get_revision_request, get_revision_cb, modem);
 		break;
 	case MODEM_EV_RX_REVISION:
-		osmo_fsm_inst_state_chg(fi, MODEM_ST_GET_IMSI, 3, 0);
-		break;
-	}
-}
-
-static void uim_get_slot_status_cb(struct qmi_service *service, struct qmi_request *req, struct qmi_msg *msg)
-{
-	struct modem *modem = req->cb_data;
-	int ret = 0, i = 0;
-	char *iccid_str;
-
-	if (req->ret) {
-		modem_log(modem, LOGL_INFO, "Failed to get slot status. Returned %d/%s. Trying next card status",
-			  req->ret, qmi_get_error_str(req->ret));
-		osmo_fsm_inst_dispatch(modem->fi, MODEM_EV_RX_UIM_GET_SLOT_FAILED, NULL);
-		return;
-	}
-
-	struct qmi_uim_get_slot_status_response res = {};
-	ret = qmi_parse_uim_get_slot_status_response(msg, &res);
-	if (ret) {
-		modem_log(modem, LOGL_INFO, "Failed to get slot status.");
-		osmo_fsm_inst_dispatch(modem->fi, MODEM_EV_RX_UIM_FAILED, NULL);
-		return;
-	}
-
-	// res->data.physical_slot_status_n
-	// struct {
-	// 	uint32_t physical_card_status;
-	// 	uint32_t physical_slot_status;
-	// 	uint8_t logical_slot;
-	// 	unsigned int iccid_n;
-	// 	uint8_t *iccid;
-	// } *physical_slot_status;
-
-	for (i = 0; i < res.data.physical_slot_status_n; ++i) {
-		uint32_t physical_card_status = res.data.physical_slot_status[i].physical_card_status;
-		uint32_t physical_slot_status = res.data.physical_slot_status[i].physical_slot_status;
-		/* ignoring uint8_t logical_slot */
-		unsigned int iccid_n = res.data.physical_slot_status[i].iccid_n;
-		uint8_t *iccid_bcd = res.data.physical_slot_status[i].iccid;
-
-		if (physical_card_status != QMI_UIM_PHYSICAL_CARD_STATE_PRESENT)
-			continue;
-
-		if (physical_slot_status != QMI_UIM_SLOT_STATE_ACTIVE)
-			continue;
-
-		if (iccid_n == 0) {
-			modem_log(modem, LOGL_INFO, "slot %d: Empty ICCID. UIM not yet ready? Or an EUICC?", i);
-			continue;
-		}
-
-		/* FIXME: check for uneven number .. */
-		int iccid_str_len = iccid_n * 2;
-		iccid_str = talloc_zero_size(modem, iccid_n * 2);
-		ret = osmo_bcd2str(iccid_str, iccid_str_len, iccid_bcd, 0, iccid_n, 1);
-
-		if (ret) {
-			modem_log(modem, LOGL_INFO, "Couldn't decode ICCID of slot %d", i);
-			talloc_free(iccid_str);
-			continue;
-		}
-
-		if (modem->iccid) {
-			modem_log(modem, LOGL_INFO, "Modem already contains an ICCID. Replacing old entry %s with %s",
-				  modem->iccid, iccid_str);
-			talloc_free(modem->iccid);
-		}
-		modem->iccid = iccid_str;
-		osmo_fsm_inst_dispatch(modem->fi, MODEM_EV_RX_UIM_VALID_ICCID, NULL);
-	}
-
-	osmo_fsm_inst_dispatch(modem->fi, MODEM_EV_RX_UIM_NO_UIM_FOUND, NULL);
-}
-
-static void uim_get_card_status_cb(struct qmi_service *service, struct qmi_request *req, struct qmi_msg *msg)
-{
-	struct modem *modem = req->cb_data;
-	int ret = 0, i = 0, found = 0;
-
-	if (req->ret) {
-		modem_log(modem, LOGL_INFO, "Failed to get card status %d/%s.", req->ret, qmi_get_error_str(req->ret));
-		osmo_fsm_inst_dispatch(modem->fi, MODEM_EV_RX_UIM_FAILED, NULL);
-		return;
-	}
-
-	struct qmi_uim_get_card_status_response res = {};
-	ret = qmi_parse_uim_get_card_status_response(msg, &res);
-	if (ret) {
-		modem_log(modem, LOGL_INFO, "Failed to get card status. Decoder failed.");
-		osmo_fsm_inst_dispatch(modem->fi, MODEM_EV_RX_UIM_FAILED, NULL);
-		return;
-	}
-
-	for (i = 0; i < res.data.card_status.cards_n; ++i) {
-		if (res.data.card_status.cards[i].card_state != QMI_UIM_CARD_STATE_PRESENT)
-			continue;
-
-		for (int j = 0; j < res.data.card_status.cards[i].applications_n; ++j) {
-			/* TODO: We should prioritize the USIM application. If not found, fallback to SIM -> ISIM -> CSIM */
-			if (res.data.card_status.cards[i].applications[j].type == QMI_UIM_CARD_APPLICATION_TYPE_UNKNOWN)
-				continue;
-
-			modem_log(modem, LOGL_INFO, "Found valid card application type %x",
-				  res.data.card_status.cards[i].applications[j].type);
-			modem->sim.use_upin = res.data.card_status.cards[i].applications[i].upin_replaces_pin1;
-
-			/* check if pin1 or upin is the correct method */
-			if (modem->sim.use_upin) {
-				modem->sim.state = uim_pin_to_uqmi_state(res.data.card_status.cards[i].upin_state);
-				modem->sim.pin_retries = res.data.card_status.cards[i].upin_retries;
-				modem->sim.puk_retries = res.data.card_status.cards[i].upuk_retries;
-			} else {
-				modem->sim.state =
-					uim_pin_to_uqmi_state(res.data.card_status.cards[i].applications[i].pin1_state);
-				modem->sim.pin_retries = res.data.card_status.cards[i].applications[i].pin1_retries;
-				modem->sim.puk_retries = res.data.card_status.cards[i].applications[i].puk1_retries;
-			}
-
-			found = 1;
-			break; /* handle first application only for now */
-		}
-
-		if (found) {
-			osmo_fsm_inst_dispatch(modem->fi, MODEM_EV_RX_UIM_VALID_ICCID, NULL);
-			return;
-		}
-	}
-
-	osmo_fsm_inst_dispatch(modem->fi, MODEM_EV_RX_UIM_NO_UIM_FOUND, NULL);
-}
-
-static void dms_get_imsi_cb(struct qmi_service *service, struct qmi_request *req, struct qmi_msg *msg)
-{
-	struct modem *modem = req->cb_data;
-	int ret = 0;
-
-	struct qmi_dms_uim_get_imsi_response res = {};
-	ret = qmi_parse_dms_uim_get_imsi_response(msg, &res);
-
-	if (ret) {
-		modem_log(modem, LOGL_INFO, "Failed to get imsi via dms. Failed to parse message");
-		osmo_fsm_inst_dispatch(modem->fi, MODEM_EV_RX_IMSI_DMS_FAILED, NULL);
-		return;
-	}
-
-	if (!res.data.imsi || strlen(res.data.imsi)) {
-		modem_log(modem, LOGL_INFO, "Received empty IMSI");
-		osmo_fsm_inst_dispatch(modem->fi, MODEM_EV_RX_IMSI_DMS_FAILED, (void *)1);
-		return;
-	}
-
-	modem->imsi = talloc_strdup(modem, res.data.imsi);
-	osmo_fsm_inst_dispatch(modem->fi, MODEM_EV_RX_IMSI, NULL);
-}
-
-static void tx_get_imsi_req(struct osmo_fsm_inst *fi, uint32_t old_state)
-{
-	struct modem *modem = fi->priv;
-	struct qmi_service *uim = uqmi_service_find(modem->qmi, QMI_SERVICE_UIM);
-
-	/* FIXME: register for indication of removed uims
-	 * - register_physical_slot_status_events
-	 * - Physical Slot Status?
-	 */
-	if (uim) {
-		modem_log(modem, LOGL_INFO, "Trying to query UIM for slot status.");
-		uqmi_service_send_simple(uim, qmi_set_uim_get_slot_status_request, uim_get_slot_status_cb, modem);
-		return;
-	}
-
-	/* Retrieve it via DMS */
-	struct qmi_service *dms = uqmi_service_find(modem->qmi, QMI_SERVICE_DMS);
-	if (dms) {
-		modem_log(modem, LOGL_INFO, "Trying to query UIM for IMSI.");
-		uqmi_service_send_simple(dms, qmi_set_dms_uim_get_imsi_request, dms_get_imsi_cb, modem);
-		return;
-	}
-}
-
-static void modem_st_get_imsi_onenter(struct osmo_fsm_inst *fi, uint32_t old_state)
-{
-	fi->N = 0;
-	tx_get_imsi_req(fi, old_state);
-}
-
-static void modem_st_get_imsi(struct osmo_fsm_inst *fi, uint32_t event, void *data)
-{
-	struct modem *modem = fi->priv;
-	struct qmi_service *uim = uqmi_service_find(modem->qmi, QMI_SERVICE_UIM);
-	struct qmi_service *dms = uqmi_service_find(modem->qmi, QMI_SERVICE_DMS);
-
-	/* TODO: figure out when DMS: Get IMSI is available, same for Get UIM State.
-	 *       Are those legacy calls?
-	 */
-
-	switch (event) {
-	case MODEM_EV_RX_UIM_VALID_ICCID:
-		/* FIXME: ICCID must be enough for now.
-		 *        It seems only Get Record or Get Transparent file for UIM would be the only
-		 *        available solution to retrieve the IMSI. Ignoring IMSI for now.
-		 */
-		modem_log(modem, LOGL_INFO, "Found valid & usable USIM.");
-		osmo_fsm_inst_state_chg(fi, MODEM_ST_POWEROFF, 0, 0);
-		break;
-	case MODEM_EV_RX_UIM_GET_SLOT_FAILED:
-		if (uim)
-			uqmi_service_send_simple(uim, qmi_set_uim_get_card_status_request, uim_get_card_status_cb,
-						 modem);
-		else
-			osmo_fsm_inst_dispatch(modem->fi, MODEM_EV_RX_UIM_FAILED, NULL);
-		break;
-	case MODEM_EV_RX_UIM_NO_UIM_FOUND:
-		modem_log(modem, LOGL_INFO, "No valid UIM found. Waiting for timeout to retry.");
-		break;
-	case MODEM_EV_RX_UIM_FAILED:
-		if (dms)
-			uqmi_service_send_simple(dms, qmi_set_dms_uim_get_imsi_request, dms_get_imsi_cb, modem);
-		break;
-	case MODEM_EV_RX_IMSI:
-		osmo_fsm_inst_state_chg(fi, MODEM_ST_POWEROFF, 0, 0);
-		break;
-	case MODEM_EV_RX_IMSI_DMS_FAILED:
-		modem_log(modem, LOGL_INFO, "DMS failed to retrieve the IMSI. Err %p", data);
+		osmo_fsm_inst_state_chg(fi, MODEM_ST_POWEROFF, 3, 0);
 		break;
 	}
 }
@@ -609,22 +382,33 @@ static void modem_st_poweroff(struct osmo_fsm_inst *fi, uint32_t event, void *da
 		break;
 	case MODEM_EV_RX_POWEROFF:
 		if (modem->config.configured && !modem->state.error)
-			osmo_fsm_inst_state_chg(fi, MODEM_ST_UNLOCK_PIN, 0, 0);
+			osmo_fsm_inst_state_chg(fi, MODEM_ST_WAIT_UIM, 0, 0);
 		else /* stop timer and wait for the user to continue */
 			osmo_timer_del(&fi->timer);
 		break;
 	case MODEM_EV_REQ_CONFIGURED: /* when the modem reach this state, but isn't yet configured, wait for the config */
-		osmo_fsm_inst_state_chg(fi, MODEM_ST_UNLOCK_PIN, 0, 0);
+		osmo_fsm_inst_state_chg(fi, MODEM_ST_WAIT_UIM, 0, 0);
 		break;
 	}
 }
 
-static void modem_st_unlock_pin_onenter(struct osmo_fsm_inst *fi, uint32_t old_state)
+static void modem_st_wait_uim_onenter(struct osmo_fsm_inst *fi, uint32_t old_state)
 {
-	osmo_fsm_inst_state_chg(fi, MODEM_ST_CONFIGURE_MODEM, 0, 0);
+	struct modem *modem = fi->priv;
+
+	if (modem->sim.fi->state == SIM_ST_READY)
+		osmo_fsm_inst_state_chg(fi, MODEM_ST_CONFIGURE_MODEM, 0, 0);
 }
-static void modem_st_unlock_pin(struct osmo_fsm_inst *fi, uint32_t event, void *data)
+
+static void modem_st_wait_uim(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 {
+	switch (event) {
+	case MODEM_EV_REQ_SIM_READY:
+		osmo_fsm_inst_state_chg(fi, MODEM_ST_CONFIGURE_MODEM, 0, 0);
+		break;
+	default:
+		break;
+	}
 }
 
 static void wds_modify_profile_cb(struct qmi_service *service, struct qmi_request *req, struct qmi_msg *msg)
@@ -739,7 +523,6 @@ static void modem_st_configure_modem(struct osmo_fsm_inst *fi, uint32_t event, v
 	/* TODO: check if this is the default profile! */
 }
 
-
 static void wda_set_data_format_cb(struct qmi_service *service, struct qmi_request *req, struct qmi_msg *msg)
 {
 	struct modem *modem = req->cb_data;
@@ -747,7 +530,8 @@ static void wda_set_data_format_cb(struct qmi_service *service, struct qmi_reque
 	struct qmi_wda_set_data_format_response res = {};
 
 	if (req->ret) {
-		modem_log(modem, LOGL_ERROR, "Failed to set data format. Status %d/%s.", req->ret, qmi_get_error_str(req->ret));
+		modem_log(modem, LOGL_ERROR, "Failed to set data format. Status %d/%s.", req->ret,
+			  qmi_get_error_str(req->ret));
 		osmo_fsm_inst_dispatch(modem->fi, MODEM_EV_RX_FAILED, NULL);
 		return;
 	}
@@ -772,7 +556,7 @@ static void wda_set_data_format_cb(struct qmi_service *service, struct qmi_reque
 		return;
 	}
 
-	osmo_fsm_inst_dispatch(modem->fi, MODEM_EV_RX_SUCCEED, (void *) (long) msg->svc.message);
+	osmo_fsm_inst_dispatch(modem->fi, MODEM_EV_RX_SUCCEED, (void *)(long)msg->svc.message);
 }
 
 /* Configure the kernel network interface */
@@ -1191,11 +975,6 @@ static int modem_fsm_timer_cb(struct osmo_fsm_inst *fi)
 		uqmi_service_send_simple(service, qmi_set_nas_get_serving_system_request, get_serving_system_cb, modem);
 		osmo_timer_schedule(&fi->timer, NAS_SERVICE_POLL_TIMEOUT_S, 0);
 		break;
-	case MODEM_ST_GET_IMSI:
-		fi->N++;
-		tx_get_imsi_req(fi, MODEM_ST_GET_IMSI);
-		osmo_timer_schedule(&fi->timer, NAS_SERVICE_POLL_TIMEOUT_S, 0);
-		break;
 	case MODEM_ST_START_IFACE:
 		switch (fi->T) {
 		case N_RESEND:
@@ -1263,40 +1042,32 @@ static const struct osmo_fsm_state modem_states[] = {
 		.onenter = modem_st_get_version_onenter,
 	},
 	[MODEM_ST_GET_MODEL] = {
-		.in_event_mask = S(MODEM_EV_RX_MODEL) | S(MODEM_EV_RX_MANUFACTURER) | S(MODEM_EV_RX_REVISION),
-		.out_state_mask = S(MODEM_ST_GET_IMSI) | S(MODEM_ST_DESTROY),
+		.in_event_mask = S(MODEM_EV_RX_MODEL) |
+				 S(MODEM_EV_RX_MANUFACTURER) |
+				 S(MODEM_EV_RX_REVISION),
+		.out_state_mask = S(MODEM_ST_POWEROFF) | S(MODEM_ST_DESTROY),
 		.name = "GET_MODEL",
 		.action = modem_st_get_model,
 		.onenter = modem_st_get_model_onenter,
-	},
-	[MODEM_ST_GET_IMSI] = {
-		.in_event_mask = S(MODEM_EV_RX_IMSI)
-				 | S(MODEM_EV_RX_UIM_FAILED)
-				 | S(MODEM_EV_RX_UIM_GET_SLOT_FAILED)
-				 | S(MODEM_EV_RX_UIM_VALID_ICCID)
-				 | S(MODEM_EV_RX_UIM_NO_UIM_FOUND)
-				 | S(MODEM_EV_RX_IMSI_DMS_FAILED),
-		.out_state_mask = S(MODEM_ST_POWEROFF) | S(MODEM_ST_DESTROY),
-		.name = "GET_IMSI",
-		.action = modem_st_get_imsi,
-		.onenter = modem_st_get_imsi_onenter,
 	},
 	[MODEM_ST_POWEROFF] = {
 		.in_event_mask = S(MODEM_EV_RX_POWEROFF)
 				 | S(MODEM_EV_RX_POWERON)
 				 | S(MODEM_EV_RX_POWERSET)
 				 | S(MODEM_EV_REQ_CONFIGURED),
-		.out_state_mask = S(MODEM_ST_UNLOCK_PIN) | S(MODEM_ST_DESTROY),
+		.out_state_mask = S(MODEM_ST_CONFIGURE_MODEM)
+				  | S(MODEM_ST_DESTROY)
+				  | S(MODEM_ST_WAIT_UIM),
 		.name = "POWEROFF",
 		.action = modem_st_poweroff,
 		.onenter = modem_st_poweroff_onenter,
 	},
-	[MODEM_ST_UNLOCK_PIN] = {
-		.in_event_mask = S(MODEM_EV_RX_UNLOCKED_PIN),
+	[MODEM_ST_WAIT_UIM] = {
+		.in_event_mask = S(MODEM_EV_REQ_SIM_READY),
 		.out_state_mask = S(MODEM_ST_CONFIGURE_MODEM) | S(MODEM_ST_DESTROY),
-		.name = "UNLOCK_PIN",
-		.action = modem_st_unlock_pin,
-		.onenter = modem_st_unlock_pin_onenter,
+		.name = "WAIT_UIM",
+		.action = modem_st_wait_uim,
+		.onenter = modem_st_wait_uim_onenter,
 	},
 	[MODEM_ST_CONFIGURE_MODEM] = {
 		.in_event_mask = S(MODEM_EV_RX_CONFIGURED)

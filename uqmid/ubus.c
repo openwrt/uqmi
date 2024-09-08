@@ -414,6 +414,7 @@ static int modem_dump_state(struct ubus_context *ctx, struct ubus_object *obj, s
 	blobmsg_add_string(&b, "name", modem->name);
 	blobmsg_add_string(&b, "device", modem->device);
 	blobmsg_add_u32(&b, "state", modem->fi->state);
+	blobmsg_add_string(&b, "state_name",  osmo_fsm_inst_state_name(modem->fi));
 	BLOBMSG_ADD_STR_CHECK(&b, "manufactor", modem->manuf);
 	BLOBMSG_ADD_STR_CHECK(&b, "model", modem->model);
 	BLOBMSG_ADD_STR_CHECK(&b, "rev", modem->rev);
@@ -431,6 +432,7 @@ static int modem_dump_state(struct ubus_context *ctx, struct ubus_object *obj, s
 	/* sim */
 	/* TODO: add human readable enum values */
 	blobmsg_add_u16(&b, "sim_state", modem->sim.state);
+	blobmsg_add_string(&b, "sim_state_name",  osmo_fsm_inst_state_name(modem->sim.fi));
 	blobmsg_add_u8(&b, "sim_use_upin", modem->sim.use_upin);
 	blobmsg_add_u16(&b, "sim_pin_retries", modem->sim.pin_retries & 0xff);
 	blobmsg_add_u16(&b, "sim_puk_retries", modem->sim.puk_retries & 0xff);
