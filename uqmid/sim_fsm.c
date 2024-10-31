@@ -19,6 +19,24 @@
  *
  * tracks the state of the sim and notifies the parent on hard events.
  * e.g. removal of the sim
+ *
+ * The general concept is:
+ * Get information about (IMSI should not be available _before_ PIN/PUK valildation if enabled:
+ *  - ICCID
+ *  - PIN/PUK state
+ *  - SPN, PNN (provider name)
+ *
+ * Unlock if locked by PIN if enough tries are available (more than 1 try).
+ * Enter a failed state if not enough PIN tries are available
+ * Enter a failed state if locked by PUK
+ * If unlocked, read IMSI.
+ *
+ * Further add user interface to:
+ * - unlock PIN/PUK via ubus
+ * - read/write transparent files
+ * - rx/tx APDU (e.g. for eSIM interface)
+ *
+ * See 3GPP TS 31.102 for USIM
  */
 
 #include "logging.h"
@@ -157,6 +175,7 @@ static void uim_get_card_status_cb(struct qmi_service *service, struct qmi_reque
 {
 	struct modem *modem = req->cb_data;
 	int ret = 0, i = 0, found = 0;
+	bool found_card_state = false;
 
 	if (req->ret) {
 		modem_log(modem, LOGL_INFO, "Failed to get card status %d/%s.", req->ret, qmi_get_error_str(req->ret));
@@ -173,6 +192,7 @@ static void uim_get_card_status_cb(struct qmi_service *service, struct qmi_reque
 	}
 
 	for (i = 0; i < res.data.card_status.cards_n; ++i) {
+		found_card_state = true;
 		if (res.data.card_status.cards[i].card_state != QMI_UIM_CARD_STATE_PRESENT)
 			continue;
 
@@ -207,8 +227,12 @@ static void uim_get_card_status_cb(struct qmi_service *service, struct qmi_reque
 		}
 	}
 
-	modem_log(modem, LOGL_INFO, "Failed to find a valid UIM in get_status. Failing UIM.");
-	osmo_fsm_inst_dispatch(modem->sim.fi, SIM_EV_RX_UIM_FAILED, NULL);
+	if (found_card_state) {
+		osmo_fsm_inst_dispatch(modem->sim.fi, SIM_EV_RX_UIM_NO_UIM_FOUND, (void *) 1);
+	} else {
+		modem_log(modem, LOGL_INFO, "Failed to find a valid UIM in get_status. Failing UIM.");
+		osmo_fsm_inst_dispatch(modem->sim.fi, SIM_EV_RX_UIM_FAILED, NULL);
+	}
 }
 
 static void uim_read_imsi_cb(struct qmi_service *service, struct qmi_request *req, struct qmi_msg *msg)
@@ -268,25 +292,36 @@ static void sim_st_get_info_on_enter(struct osmo_fsm_inst *fi, uint32_t old_stat
 	}
 }
 
-static void sim_st_get_info(struct osmo_fsm_inst *fi, uint32_t event, void *data)
+static void sim_st_get_info(struct osmo_fsm_inst *fi, uint32_t event, void *_data)
 {
 	struct modem *modem = fi->priv;
+	long data = (long) _data;
 
 	struct qmi_service *uim = uqmi_service_find(modem->qmi, QMI_SERVICE_UIM);
 
 	switch (event) {
 	case SIM_EV_RX_UIM_GET_SLOT_FAILED:
 	case SIM_EV_RX_UIM_VALID_ICCID:
-	case SIM_EV_RX_UIM_NO_UIM_FOUND:
 		/* Get Slot Status succeeded? */
 		if (uim && modem->sim.use_uim)
 			uqmi_service_send_simple(uim, qmi_set_uim_get_card_status_request, uim_get_card_status_cb,
 						 modem);
 		break;
-	case SIM_EV_RX_UIM_CARD_STATUS_VALID:
+	case SIM_EV_RX_UIM_NO_UIM_FOUND:
 		if (uim && modem->sim.use_uim) {
-			_tx_uim_read_transparent_file(modem, uim, uim_read_imsi_cb, UIM_FILE_IMSI);
+			/* Get Slot Status failed, try Get Card Status */
+			if (data == 0)
+				uqmi_service_send_simple(uim, qmi_set_uim_get_card_status_request, uim_get_card_status_cb,
+							 modem);
+			/* Get Card Status also failed to get one */
+			else if (data == 1)
+				osmo_fsm_inst_state_chg(fi, SIM_ST_FAIL_NO_SIM_PRESENT, 0, 0);
 		}
+		break;
+	case SIM_EV_RX_UIM_CARD_STATUS_VALID:
+		/* We found a valid SIM card via card status */
+		if (uim && modem->sim.use_uim)
+			_tx_uim_read_transparent_file(modem, uim, uim_read_imsi_cb, UIM_FILE_IMSI);
 		break;
 	case SIM_EV_RX_UIM_GET_IMSI_FAILED:
 	case SIM_EV_RX_UIM_GET_IMSI_SUCCESS:
@@ -301,10 +336,12 @@ static void sim_st_get_info(struct osmo_fsm_inst *fi, uint32_t event, void *data
 			osmo_fsm_inst_state_chg(fi, SIM_ST_READY, 0, 0);
 			break;
 		case UQMI_SIM_UNKNOWN:
-			/* FIXME: what to do when unknown? */
+			modem_log(modem, LOGL_ERROR, "Got unknown SIM state by UIM. Is a SIM present?");
+			osmo_fsm_inst_state_chg(fi, SIM_ST_FAIL_NO_SIM_PRESENT, 0, 0);
 			break;
 		case UQMI_SIM_BLOCKED:
-			osmo_fsm_inst_state_chg(fi, SIM_ST_FAILED, SIM_DEFAULT_TIMEOUT_S, 0);
+			modem_log(modem, LOGL_ERROR, "SIM is blocked. Can't do anythings");
+			osmo_fsm_inst_state_chg(fi, SIM_ST_FAILED, 0, 0);
 			break;
 		default:
 			/* FIXME: default case */
@@ -314,22 +351,163 @@ static void sim_st_get_info(struct osmo_fsm_inst *fi, uint32_t event, void *data
 	}
 }
 
+static void uim_verify_pin_cb(struct qmi_service *service, struct qmi_request *req, struct qmi_msg *msg)
+{
+	struct modem *modem = req->cb_data;
+	int ret = 0;
+
+	struct qmi_uim_verify_pin_response res = {};
+	ret = qmi_parse_uim_verify_pin_response(msg, &res);
+
+	if (req->ret) {
+		modem_log(modem, LOGL_INFO, "Failed to verify PIN. Qmi Ret %d/%s.", req->ret,
+			  qmi_get_error_str(req->ret));
+		if (!ret && res.set.retries_remaining) {
+			modem->sim.pin_retries = res.data.retries_remaining.verify_retries_left;
+			modem->sim.puk_retries = res.data.retries_remaining.unblock_retries_left;
+			osmo_fsm_inst_dispatch(modem->sim.fi, SIM_EV_RX_UIM_PIN_INVALID, (void *) 1);
+		} else
+			osmo_fsm_inst_dispatch(modem->sim.fi, SIM_EV_RX_UIM_PIN_INVALID, (void *) 0);
+		return;
+	}
+
+	if (ret) {
+		modem_log(modem, LOGL_INFO, "Failed to verify pin. Decoder failed. %d", ret);
+		osmo_fsm_inst_dispatch(modem->sim.fi, SIM_EV_RX_UIM_REFRESH, NULL);
+		return;
+	}
+
+	if (res.set.retries_remaining) {
+		modem->sim.pin_retries = res.data.retries_remaining.verify_retries_left;
+		modem->sim.puk_retries = res.data.retries_remaining.unblock_retries_left;
+	}
+
+	if (res.set.card_result && res.data.card_result.sw1 == 0x63) {
+		osmo_fsm_inst_dispatch(modem->sim.fi, SIM_EV_RX_UIM_PIN_VERIFIED, NULL);
+		return;
+	}
+
+	osmo_fsm_inst_dispatch(modem->sim.fi, SIM_EV_RX_UIM_REFRESH, NULL);
+}
+
+static void pin_verify(struct modem *modem, char *pin)
+{
+	QmiUimPinId pin_id;
+	struct qmi_service *uim = uqmi_service_find(modem->qmi, QMI_SERVICE_UIM);
+
+	modem->sim.pin_tried = true;
+
+	if (modem->sim.use_upin)
+		pin_id = QMI_UIM_PIN_ID_UPIN;
+	else
+		pin_id = QMI_UIM_PIN_ID_PIN1;
+
+	tx_uim_verify_pin(modem, uim, &uim_verify_pin_cb, pin_id, pin);
+}
+
 static void sim_st_chv_pin_on_enter(struct osmo_fsm_inst *fi, uint32_t old_state)
 {
-	// FIXME: try to unlock if enough tries are there
+	struct modem *modem = fi->priv;
+
+	if (modem->sim.pin_retries < 2 || modem->sim.pin_tried || !modem->config.pin) {
+		osmo_fsm_inst_state_chg(fi, SIM_ST_FAIL_PIN_REQUIRED, SIM_DEFAULT_TIMEOUT_S, 0);
+		return;
+	}
+
+	pin_verify(modem, modem->config.pin);
 }
 
 static void sim_st_chv_pin(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 {
+	switch (event) {
+	case SIM_EV_RX_UIM_REFRESH:
+	case SIM_EV_RX_UIM_PIN_VERIFIED:
+		osmo_fsm_inst_state_chg(fi, SIM_ST_GET_INFO, SIM_DEFAULT_TIMEOUT_S, 0);
+		break;
+	case SIM_EV_RX_UIM_PIN_INVALID:
+		osmo_fsm_inst_state_chg(fi, SIM_ST_FAIL_PIN_REQUIRED, SIM_DEFAULT_TIMEOUT_S, 0);
+		break;
+	}
+}
+
+static void uim_unblock_pin_cb(struct qmi_service *service, struct qmi_request *req, struct qmi_msg *msg)
+{
+	struct modem *modem = req->cb_data;
+	int ret = 0;
+
+	struct qmi_uim_unblock_pin_response res = {};
+	ret = qmi_parse_uim_unblock_pin_response(msg, &res);
+
+	if (req->ret) {
+		modem_log(modem, LOGL_INFO, "Failed to unblock PIN by PUK. Qmi Ret %d/%s.", req->ret,
+			  qmi_get_error_str(req->ret));
+		if (!ret && res.set.retries_remaining) {
+			modem->sim.pin_retries = res.data.retries_remaining.verify_retries_left;
+			modem->sim.puk_retries = res.data.retries_remaining.unblock_retries_left;
+			osmo_fsm_inst_dispatch(modem->sim.fi, SIM_EV_RX_UIM_PUK_INVALID, (void *) 1);
+		} else
+			osmo_fsm_inst_dispatch(modem->sim.fi, SIM_EV_RX_UIM_PUK_INVALID, (void *) 0);
+		return;
+	}
+
+	if (ret) {
+		modem_log(modem, LOGL_INFO, "Failed to unblock pin/puk. Decoder failed. %d", ret);
+		osmo_fsm_inst_dispatch(modem->sim.fi, SIM_EV_RX_UIM_REFRESH, NULL);
+		return;
+	}
+
+	if (res.set.retries_remaining) {
+		modem->sim.pin_retries = res.data.retries_remaining.verify_retries_left;
+		modem->sim.puk_retries = res.data.retries_remaining.unblock_retries_left;
+	}
+
+	if (res.set.card_result && res.data.card_result.sw1 == 0x63) {
+		osmo_fsm_inst_dispatch(modem->sim.fi, SIM_EV_RX_UIM_PUK_VERIFIED, NULL);
+		return;
+	}
+
+	osmo_fsm_inst_dispatch(modem->sim.fi, SIM_EV_RX_UIM_REFRESH, NULL);
+}
+
+static int pin_unblock(struct modem *modem, char *new_pin, char *puk)
+{
+	QmiUimPinId pin_id;
+	struct qmi_service *uim = uqmi_service_find(modem->qmi, QMI_SERVICE_UIM);
+
+	modem->sim.puk_tried = true;
+	if (modem->sim.use_upin)
+		pin_id = QMI_UIM_PIN_ID_UPIN;
+	else
+		pin_id = QMI_UIM_PIN_ID_PIN1;
+
+	return tx_uim_unblock_pin(modem, uim, &uim_unblock_pin_cb, pin_id, new_pin, puk);
 }
 
 static void sim_st_chv_puk_on_enter(struct osmo_fsm_inst *fi, uint32_t old_state)
 {
-	// FIXME: try to unlock if enough tries are there
+	struct modem *modem = fi->priv;
+
+	if (modem->sim.puk_retries < 2 || modem->sim.puk_tried || !modem->config.puk || !modem->config.pin) {
+		osmo_fsm_inst_state_chg(fi, SIM_ST_FAIL_PUK_REQUIRED, SIM_DEFAULT_TIMEOUT_S, 0);
+		return;
+	}
+
+
+	if (pin_unblock(modem, modem->config.pin, modem->config.puk))
+		osmo_fsm_inst_state_chg(fi, SIM_ST_FAIL_PUK_REQUIRED, 0, 0);
 }
 
 static void sim_st_chv_puk(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 {
+	switch (event) {
+	case SIM_EV_RX_UIM_REFRESH:
+	case SIM_EV_RX_UIM_PIN_VERIFIED:
+		osmo_fsm_inst_state_chg(fi, SIM_ST_GET_INFO, SIM_DEFAULT_TIMEOUT_S, 0);
+		break;
+	case SIM_EV_RX_UIM_PIN_INVALID:
+		osmo_fsm_inst_state_chg(fi, SIM_ST_FAIL_PIN_REQUIRED, SIM_DEFAULT_TIMEOUT_S, 0);
+		break;
+	}
 }
 
 static void sim_st_ready_on_enter(struct osmo_fsm_inst *fi, uint32_t old_state)
@@ -340,6 +518,18 @@ static void sim_st_ready_on_enter(struct osmo_fsm_inst *fi, uint32_t old_state)
 }
 
 static void sim_st_ready(struct osmo_fsm_inst *fi, uint32_t event, void *data)
+{
+}
+
+static void sim_st_fail_pin_required(struct osmo_fsm_inst *fi, uint32_t event, void *data)
+{
+}
+
+static void sim_st_fail_puk_required(struct osmo_fsm_inst *fi, uint32_t event, void *data)
+{
+}
+
+static void sim_st_fail_no_sim_present(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 {
 }
 
@@ -433,6 +623,7 @@ static const struct osmo_fsm_state sim_states[] = {
 		.out_state_mask = S(SIM_ST_READY) |
 				  S(SIM_ST_CHV_PIN) |
 				  S(SIM_ST_CHV_PUK) |
+				  S(SIM_ST_FAIL_NO_SIM_PRESENT) |
 				  S(SIM_ST_DESTROY),
 		.name = "GET_INFO",
 		.onenter = sim_st_get_info_on_enter,
@@ -458,6 +649,24 @@ static const struct osmo_fsm_state sim_states[] = {
 		.name = "CHV_PIN",
 		.onenter = sim_st_chv_puk_on_enter,
 		.action = sim_st_chv_puk,
+	},
+	[SIM_ST_FAIL_PIN_REQUIRED] = {
+		.in_event_mask = 0,
+		.out_state_mask = S(SIM_ST_DESTROY) | S(SIM_ST_GET_INFO),
+		.name = "FAIL_PIN_REQUIRED",
+		.action = sim_st_fail_pin_required,
+	},
+	[SIM_ST_FAIL_PUK_REQUIRED] = {
+		.in_event_mask = 0,
+		.out_state_mask = S(SIM_ST_DESTROY) | S(SIM_ST_GET_INFO),
+		.name = "FAIL_PUK_REQUIRED",
+		.action = sim_st_fail_puk_required,
+	},
+	[SIM_ST_FAIL_NO_SIM_PRESENT] = {
+		.in_event_mask = 0,
+		.out_state_mask = S(SIM_ST_DESTROY) | S(SIM_ST_GET_INFO),
+		.name = "NO_SIM_PRESENT",
+		.action = sim_st_fail_no_sim_present,
 	},
 	[SIM_ST_FAILED] = {
 		.in_event_mask = 0,

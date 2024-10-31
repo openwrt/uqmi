@@ -2,6 +2,7 @@
 #define __UQMID_SIM_FSM_H
 
 #include <stdbool.h>
+
 enum sim_fsm_state {
 	SIM_ST_IDLE,
 	SIM_ST_WAIT_UIM_PRESENT,
@@ -10,7 +11,10 @@ enum sim_fsm_state {
 	SIM_ST_CHV_PUK,
 	SIM_ST_READY,
 	SIM_ST_FAILED,
-	SIM_ST_REMOVED,
+	SIM_ST_NO_PIN_TRIES_LEFT,
+	SIM_ST_FAIL_PUK_REQUIRED,
+	SIM_ST_FAIL_PIN_REQUIRED,
+	SIM_ST_FAIL_NO_SIM_PRESENT,
 	SIM_ST_DESTROY,
 };
 
@@ -38,7 +42,14 @@ enum sim_fsm_event {
 	SIM_EV_RX_UIM_GET_IMSI_FAILED,
 
 	SIM_EV_RX_UIM_PIN_REQUIRED,
+	SIM_EV_RX_UIM_PIN_INVALID,
+	SIM_EV_RX_UIM_PIN_VERIFIED,
+
 	SIM_EV_RX_UIM_PUK_REQUIRED,
+	SIM_EV_RX_UIM_PUK_INVALID,
+	SIM_EV_RX_UIM_PUK_VERIFIED,
+
+	SIM_EV_RX_UIM_REFRESH, /* we need to re-check the UIM. E.g. this can happen when pin verified or puk applied, but with a result which we can't parse */
 	SIM_EV_RX_UIM_READY,
 
 	SIM_EV_RX_FAILED,

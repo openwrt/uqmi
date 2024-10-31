@@ -271,3 +271,63 @@ int tx_uim_read_transparent_file(struct modem *modem, struct qmi_service *uim, r
 	req->cb_data = modem;
 	return uqmi_service_send_msg(uim, req);
 }
+
+int tx_uim_unblock_pin(struct modem *modem, struct qmi_service *uim, request_cb cb,
+					   QmiUimPinId pin_id, char *new_pin_value, char *puk_value)
+{
+	struct qmi_request *req = talloc_zero(uim, struct qmi_request);
+	struct qmi_msg *msg = talloc_zero_size(req, 1024);
+
+	struct qmi_uim_unblock_pin_request puk_request = {};
+	puk_request.set.info = true;
+	puk_request.data.info.pin_id = pin_id;
+	puk_request.data.info.new_pin = new_pin_value;
+	puk_request.data.info.puk = puk_value;
+
+	/* FIXME: test if this is ok and not QMI_UIM_SESSION_TYPE_CARD_SLOT_1 */
+	puk_request.data.session.session_type = 0;
+	puk_request.data.session.application_identifier_n = 0;
+	puk_request.data.session.application_identifier = NULL;
+
+	int ret = qmi_set_uim_unblock_pin_request(msg, &puk_request);
+	if (ret) {
+		LOG_ERROR("Failed to encode unblock_pin_request");
+		return 1;
+	}
+
+	req->msg = msg;
+	req->cb = cb;
+	req->cb_data = modem;
+	return uqmi_service_send_msg(uim, req);
+}
+
+
+int tx_uim_verify_pin(struct modem *modem, struct qmi_service *uim, request_cb cb,
+		      QmiUimPinId pin_id, char *pin_value)
+{
+	struct qmi_request *req = talloc_zero(uim, struct qmi_request);
+	struct qmi_msg *msg = talloc_zero_size(req, 1024);
+
+	struct qmi_uim_verify_pin_request pin_request = {};
+	pin_request.set.info = true;
+	pin_request.data.info.pin_id = pin_id;
+	pin_request.data.info.pin_value = pin_value;
+
+
+	pin_request.set.session = 1;
+	/* FIXME: test if this is ok and not QMI_UIM_SESSION_TYPE_CARD_SLOT_1 */
+	pin_request.data.session.session_type = 0;
+	pin_request.data.session.application_identifier_n = 0;
+	pin_request.data.session.application_identifier = NULL;
+
+	int ret = qmi_set_uim_verify_pin_request(msg, &pin_request);
+	if (ret) {
+		LOG_ERROR("Failed to encode verify_pin_request");
+		return 1;
+	}
+
+	req->msg = msg;
+	req->cb = cb;
+	req->cb_data = modem;
+	return uqmi_service_send_msg(uim, req);
+}
