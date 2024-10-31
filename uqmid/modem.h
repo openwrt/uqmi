@@ -35,6 +35,7 @@ struct modem_config {
 	char *username;
 	char *password;
 	char *pin;
+	char *puk;
 	bool roaming;
 	uint8_t pdp_type;
 };
@@ -123,6 +124,9 @@ struct modem {
 		bool use_upin;
 		bool use_uim;
 		bool requires_unlock;
+		/* when we tried the configured pin once */
+		bool pin_tried;
+		bool puk_tried;
 		int pin_retries;
 		int puk_retries;
 	} sim;
