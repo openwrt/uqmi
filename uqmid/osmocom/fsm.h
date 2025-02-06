@@ -102,6 +102,8 @@ struct osmo_fsm_inst {
 
 	/*! timer number for states with time-out */
 	int T;
+	/*! number for time the timer timed out */
+	int N;
 	/*! timer back-end for states with time-out */
 	struct osmo_timer_list timer;
 
