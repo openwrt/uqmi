@@ -648,3 +648,30 @@ cmd_wds_get_default_profile_cb(struct qmi_dev *qmi, struct qmi_request *req, str
 
 	blobmsg_close_table(&status, p);
 }
+
+#define cmd_wds_delete_profile_cb no_cb
+
+static enum qmi_cmd_result
+cmd_wds_delete_profile_prepare(struct qmi_dev *qmi, struct qmi_request *req,
+			       struct qmi_msg *msg, char *arg)
+{
+	struct qmi_wds_delete_profile_request delete_req = {
+		QMI_INIT_SEQUENCE(profile_identifier,
+			.profile_type = QMI_WDS_PROFILE_TYPE_3GPP,
+			.profile_index = 1,
+		)
+	};
+	struct uqmi_wds_profile_identifier profile;
+
+	if (uqmi_wds_profile_identifier_parse(arg, &profile) < 0) {
+		fprintf(stderr, "Invalid argument\n");
+		return QMI_CMD_EXIT;
+	}
+
+	qmi_set_ptr(&delete_req, profile_identifier.profile_type, profile.type);
+	qmi_set_ptr(&delete_req, profile_identifier.profile_index, profile.index);
+
+	qmi_set_wds_delete_profile_request(msg, &delete_req);
+
+	return QMI_CMD_REQUEST;
+}

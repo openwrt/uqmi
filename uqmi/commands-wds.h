@@ -37,6 +37,7 @@
 	__uqmi_command(wds_get_default_profile, get-default-profile, required, QMI_SERVICE_WDS), \
 	__uqmi_command(wds_create_profile, create-profile, required, QMI_SERVICE_WDS), \
 	__uqmi_command(wds_modify_profile, modify-profile, required, QMI_SERVICE_WDS), \
+	__uqmi_command(wds_delete_profile, delete-profile, required, QMI_SERVICE_WDS), \
 	__uqmi_command(wds_set_pdp_type, pdp-type, required, CMD_TYPE_OPTION), \
 	__uqmi_command(wds_no_roaming, no-roaming, required, CMD_TYPE_OPTION), \
 	__uqmi_command(wds_get_current_settings, get-current-settings, no, QMI_SERVICE_WDS), \
@@ -75,6 +76,7 @@
 		"    --password <password>:          Use network password\n" \
 		"    --auth-type pap|chap|both|none: Use network authentication type\n" \
 		"    --no-roaming false|true         To allow roaming, set to false\n" \
+		"  --delete-profile <val>,#:         Delete profile number (3gpp, 3gpp2)\n" \
 		"  --get-current-settings:           Get current connection settings\n" \
 		"  --bind-mux <id>:                  Bind data session to QMAP multiplex (use with options below)\n" \
 		"    --endpoint-type <type>:         Set endpoint interface type (hsusb, pcie)\n" \
