@@ -34,6 +34,7 @@
 	__uqmi_command(wds_set_autoconnect_settings, set-autoconnect, required, QMI_SERVICE_WDS), \
 	__uqmi_command(wds_reset, reset-wds, no, QMI_SERVICE_WDS), \
 	__uqmi_command(wds_get_profile_settings, get-profile-settings, required, QMI_SERVICE_WDS), \
+	__uqmi_command(wds_set_default_profile, set-default-profile, required, QMI_SERVICE_WDS), \
 	__uqmi_command(wds_get_default_profile, get-default-profile, required, QMI_SERVICE_WDS), \
 	__uqmi_command(wds_create_profile, create-profile, required, QMI_SERVICE_WDS), \
 	__uqmi_command(wds_modify_profile, modify-profile, required, QMI_SERVICE_WDS), \
@@ -61,6 +62,7 @@
 		"  --set-ip-family <val>:            Set ip-family (ipv4, ipv6, unspecified)\n" \
 		"  --set-autoconnect <val>:          Set automatic connect/reconnect (disabled, enabled, paused)\n" \
 		"  --get-profile-settings <val,#>:   Get APN profile settings (3gpp, 3gpp2),#\n" \
+		"  --set-default-profile <val,#>:    Set default profile number (3gpp, 3gpp2)\n" \
 		"  --get-default-profile <val>:      Get default profile number (3gpp, 3gpp2)\n" \
 		"  --create-profile <val>            Create profile (3gpp, 3gpp2)\n" \
 		"    --apn <apn>:                    Use APN\n" \

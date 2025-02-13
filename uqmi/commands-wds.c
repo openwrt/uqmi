@@ -649,6 +649,31 @@ cmd_wds_get_default_profile_cb(struct qmi_dev *qmi, struct qmi_request *req, str
 	blobmsg_close_table(&status, p);
 }
 
+#define cmd_wds_set_default_profile_cb no_cb
+
+static enum qmi_cmd_result
+cmd_wds_set_default_profile_prepare(struct qmi_dev *qmi, struct qmi_request *req,
+				    struct qmi_msg *msg, char *arg)
+{
+	struct uqmi_wds_profile_identifier profile;
+
+	if (uqmi_wds_profile_identifier_parse(arg, &profile) < 0) {
+		fprintf(stderr, "Invalid argument\n");
+		return QMI_CMD_EXIT;
+	}
+
+	struct qmi_wds_set_default_profile_number_request set_default_profile = {
+		QMI_INIT_SEQUENCE(profile_identifier,
+			.family = QMI_WDS_PROFILE_FAMILY_TETHERED,
+			.type = profile.type,
+			.index = profile.index,
+		)
+	};
+
+	qmi_set_wds_set_default_profile_number_request(msg, &set_default_profile);
+	return QMI_CMD_REQUEST;
+}
+
 #define cmd_wds_delete_profile_cb no_cb
 
 static enum qmi_cmd_result
