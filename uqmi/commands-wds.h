@@ -36,6 +36,7 @@
 	__uqmi_command(wds_get_profile_settings, get-profile-settings, required, QMI_SERVICE_WDS), \
 	__uqmi_command(wds_set_default_profile, set-default-profile, required, QMI_SERVICE_WDS), \
 	__uqmi_command(wds_get_default_profile, get-default-profile, required, QMI_SERVICE_WDS), \
+	__uqmi_command(wds_get_profile_list, get-profile-list, required, QMI_SERVICE_WDS), \
 	__uqmi_command(wds_create_profile, create-profile, required, QMI_SERVICE_WDS), \
 	__uqmi_command(wds_modify_profile, modify-profile, required, QMI_SERVICE_WDS), \
 	__uqmi_command(wds_delete_profile, delete-profile, required, QMI_SERVICE_WDS), \
@@ -65,6 +66,7 @@
 		"  --get-profile-settings <val,#>:   Get APN profile settings (3gpp, 3gpp2),#\n" \
 		"  --set-default-profile <val,#>:    Set default profile number (3gpp, 3gpp2)\n" \
 		"  --get-default-profile <val>:      Get default profile number (3gpp, 3gpp2)\n" \
+		"  --get-profile-list <val>:         Get List of profiles (3gpp, 3gpp2)\n" \
 		"  --create-profile <val>            Create profile (3gpp, 3gpp2)\n" \
 		"    --apn <apn>:                    Use APN\n" \
 		"    --pdp-type ipv4|ipv6|ipv4v6>:   Use pdp-type for the connection\n" \
