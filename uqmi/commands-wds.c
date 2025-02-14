@@ -700,3 +700,40 @@ cmd_wds_delete_profile_prepare(struct qmi_dev *qmi, struct qmi_request *req,
 
 	return QMI_CMD_REQUEST;
 }
+
+#define cmd_wds_set_lte_attach_pdn_cb no_cb
+
+static enum qmi_cmd_result
+cmd_wds_set_lte_attach_pdn_prepare(struct qmi_dev *qmi, struct qmi_request *req,
+				   struct qmi_msg *msg, char *arg)
+{
+	uint16_t list[8] = {0};
+
+	char *s = arg;
+	int i = 0;
+
+	while (s) {
+		if (i >= 8) {
+			fprintf(stderr, "Only 8 attach PDN supported\n");
+			return QMI_CMD_EXIT;
+		}
+
+		list[i] = strtoul(s, &s, 10);
+		i++;
+		if (*s == ',') {
+			s++;
+		} else {
+			fprintf(stderr, "Invalid argument\n");
+			return QMI_CMD_EXIT;
+		}
+	}
+
+
+	struct qmi_wds_set_lte_attach_pdn_list_request lte_attach_pdn = {
+		QMI_INIT_ARRAY(list, list, i),
+		QMI_INIT(action, QMI_WDS_ATTACH_PDN_LIST_ACTION_DETACH_OR_PDN_DISCONNECT)
+	};
+
+	qmi_set_wds_set_lte_attach_pdn_list_request(msg, &lte_attach_pdn);
+	return QMI_CMD_REQUEST;
+}

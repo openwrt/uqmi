@@ -44,7 +44,8 @@
 	__uqmi_command(wds_get_current_settings, get-current-settings, no, QMI_SERVICE_WDS), \
 	__uqmi_command(wds_bind_mux, bind-mux, required, QMI_SERVICE_WDS), \
 	__uqmi_command(wds_ep_type, endpoint-type, required, CMD_TYPE_OPTION), \
-	__uqmi_command(wds_ep_iface, endpoint-iface, required, CMD_TYPE_OPTION) \
+	__uqmi_command(wds_ep_iface, endpoint-iface, required, CMD_TYPE_OPTION), \
+	__uqmi_command(wds_set_lte_attach_pdn, lte-attach-pdn, required, QMI_SERVICE_WDS)
 
 
 #define wds_helptext \
@@ -82,4 +83,5 @@
 		"  --get-current-settings:           Get current connection settings\n" \
 		"  --bind-mux <id>:                  Bind data session to QMAP multiplex (use with options below)\n" \
 		"    --endpoint-type <type>:         Set endpoint interface type (hsusb, pcie)\n" \
-		"    --endpoint-iface <number>:      Set endpoint interface number\n"
+		"    --endpoint-iface <number>:      Set endpoint interface number\n" \
+		"  --set-lte-attach-pdn #,#,...:     Set list of PDN connections used when attaching to LTE/5G\n"
