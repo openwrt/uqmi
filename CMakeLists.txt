@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.10)
 
 PROJECT(uqmi C)
 
@@ -37,7 +37,6 @@ SET(service_sources)
 FOREACH(service ctl dms nas pds wds wms wda uim)
 	ADD_CUSTOM_COMMAND(
 		OUTPUT  qmi-message-${service}.h
-		PRE_BUILD
 		COMMAND ${CMAKE_SOURCE_DIR}/data/gen-header.pl ${service}_ ${CMAKE_SOURCE_DIR}/data/qmi-service-${service}.json > qmi-message-${service}.h
 		DEPENDS ${CMAKE_SOURCE_DIR}/data/gen-header.pl ${CMAKE_SOURCE_DIR}/data/qmi-service-${service}.json ${CMAKE_SOURCE_DIR}/data/gen-common.pm
 	)
@@ -45,7 +44,6 @@ FOREACH(service ctl dms nas pds wds wms wda uim)
 	SET(service_headers ${service_headers} qmi-message-${service}.h)
 	ADD_CUSTOM_COMMAND(
 		OUTPUT  qmi-message-${service}.c
-		PRE_BUILD
 		COMMAND ${CMAKE_SOURCE_DIR}/data/gen-code.pl ${service}_ ${CMAKE_SOURCE_DIR}/data/qmi-service-${service}.json > qmi-message-${service}.c
 		DEPENDS ${CMAKE_SOURCE_DIR}/data/gen-code.pl ${CMAKE_SOURCE_DIR}/data/qmi-service-${service}.json ${CMAKE_SOURCE_DIR}/data/gen-common.pm qmi-message-${service}.h
 	)
@@ -56,7 +54,6 @@ ENDFOREACH()
 
 ADD_CUSTOM_COMMAND(
 	OUTPUT  ${CMAKE_SOURCE_DIR}/qmi-errors.c
-	PRE_BUILD
 	COMMAND ${CMAKE_SOURCE_DIR}/data/gen-error-list.pl ${CMAKE_SOURCE_DIR}/qmi-errors.h > qmi-errors.c
 	DEPENDS ${CMAKE_SOURCE_DIR}/data/gen-error-list.pl ${CMAKE_SOURCE_DIR}/qmi-errors.h
 )
