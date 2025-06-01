@@ -107,6 +107,7 @@ struct qmi_request {
 
 extern bool cancel_all_requests;
 int qmi_device_open(struct qmi_dev *qmi, const char *path);
+int qmi_device_proxy_open(struct qmi_dev *qmi, const char *path);
 void qmi_device_close(struct qmi_dev *qmi);
 
 int qmi_request_start(struct qmi_dev *qmi, struct qmi_request *req, request_cb cb);

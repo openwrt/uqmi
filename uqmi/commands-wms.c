@@ -19,6 +19,7 @@
  * Boston, MA 02110-1301 USA.
  */
 
+#include <iconv.h>
 #include "qmi-message.h"
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
@@ -624,15 +625,31 @@ pdu_encode_number(unsigned char *dest, const char *str, bool smsc)
 }
 
 static int
+pdu_encode_ucs2_str(char *dest, char *str, size_t inlen)
+{
+	iconv_t iconv_state = iconv_open("ucs-2be", "utf-8");
+	size_t len = 140;
+
+	if (iconv_state == (iconv_t)(-1))
+		return 0;
+
+	iconv(iconv_state, &str,  &inlen, &dest, &len);
+	iconv_close(iconv_state);
+	return 140 - len;
+}
+
+static int
 pdu_encode_data(unsigned char *dest, const char *str)
 {
 	int len = 0;
+	size_t inlen = strlen(str);
 
-	dest[len++] = 0;
-	len += pdu_encode_7bit_str(&dest[len], str);
-	dest[0] = strlen(str);
-
-	return len;
+	if (inlen <= 70)
+		len = pdu_encode_ucs2_str((char *)&dest[1], (char *)str, inlen);
+	if (!len)
+		len = pdu_encode_7bit_str(&dest[1], str);
+	dest[0] = len;
+	return len + 1;
 }
 
 #define cmd_wms_send_message_cb no_cb
@@ -663,6 +680,9 @@ cmd_wms_send_message_prepare(struct qmi_dev *qmi, struct qmi_request *req, struc
 
 	if (_send.flash)
 		dcs |= 0x10;
+
+	if (strlen(arg) <= 70)
+		dcs |= 0x08;
 
 	if (!_send.smsc || !*_send.smsc)
 		*(cur++) = 0;
