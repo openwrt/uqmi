@@ -50,6 +50,7 @@ static struct {
 	uint32_t max_size_ul;
 	uint32_t max_datagrams_ul;
 	QmiWdaDataAggregationProtocol aggregation_protocol_ul;
+	int8_t flow_control;
 } wda_aggregation_info = {
 	.max_size_dl = 0,
 	.max_datagrams_dl = 0,
@@ -57,6 +58,7 @@ static struct {
 	.max_size_ul = 0,
 	.max_datagrams_ul = 0,
 	.aggregation_protocol_ul = QMI_WDA_DATA_AGGREGATION_PROTOCOL_DISABLED,
+	.flow_control = -1,
 };
 
 #define cmd_wda_set_data_format_cb no_cb
@@ -74,6 +76,9 @@ cmd_wda_set_data_format_send(struct qmi_msg *msg, QmiWdaLinkLayerProtocol link_l
 		QMI_INIT(downlink_data_aggregation_max_size, wda_aggregation_info.max_size_dl),
 		QMI_INIT(downlink_minimum_padding, 0),
 	};
+
+	if (wda_aggregation_info.flow_control >= 0)
+		qmi_set(&data_req, flow_control, wda_aggregation_info.flow_control);
 
 	qmi_set_wda_set_data_format_request(msg, &data_req);
 }
@@ -182,6 +187,24 @@ static enum qmi_cmd_result cmd_wda_uplink_data_aggregation_max_size_prepare(
 	uint32_t max_size = strtoul(arg, NULL, 10);
 
 	wda_aggregation_info.max_size_ul = max_size;
+	return QMI_CMD_DONE;
+}
+
+#define cmd_wda_flow_control_cb no_cb
+
+static enum qmi_cmd_result cmd_wda_flow_control_prepare(
+	struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg,
+	char *arg)
+{
+	uint32_t val = strtoul(arg, NULL, 10);
+
+	if (val != 0 && val != 1) {
+		uqmi_add_error("Invalid value (valid: 0, 1)");
+		return QMI_CMD_EXIT;
+	}
+
+	wda_aggregation_info.flow_control = !!val;
+
 	return QMI_CMD_DONE;
 }
 

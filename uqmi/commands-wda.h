@@ -27,6 +27,7 @@
 	__uqmi_command(wda_uplink_data_aggregation_protocol, ul-aggregation-protocol, required, CMD_TYPE_OPTION), \
 	__uqmi_command(wda_uplink_data_aggregation_max_datagrams, ul-datagram-max-count, required, CMD_TYPE_OPTION), \
 	__uqmi_command(wda_uplink_data_aggregation_max_size, ul-datagram-max-size, required, CMD_TYPE_OPTION), \
+	__uqmi_command(wda_flow_control, flow-control, required, CMD_TYPE_OPTION), \
 	__uqmi_command(wda_get_data_format, wda-get-data-format, no, QMI_SERVICE_WDA)
 
 
@@ -38,5 +39,6 @@
 		"    --ul-aggregation-protocol <proto>:        Set uplink aggregation protocol (proto: tlp|qc-cm|mbim|rndis|qmap|qmapv5)\n" \
 		"    --ul-datagram-max-count <count>:          Set uplink aggregation max datagrams (number)\n" \
 		"    --ul-datagram-max-size <size>:            Set uplink aggregation max datagram size (bytes)\n" \
+		"    --flow-control <state>:                   Enable flow-control (state: 0|1)\n" \
 		"  --wda-get-data-format:                      Get data format\n" \
 
