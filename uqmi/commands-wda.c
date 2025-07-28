@@ -208,23 +208,53 @@ static enum qmi_cmd_result cmd_wda_flow_control_prepare(
 	return QMI_CMD_DONE;
 }
 
+static const char *
+wda_link_layer_protocol_to_string(QmiWdaLinkLayerProtocol proto)
+{
+	for (int i = 0; i < ARRAY_SIZE(link_modes); i++) {
+		if (link_modes[i].val == proto)
+			return link_modes[i].name;
+	}
+	return "unknown";
+}
+
+static const char *
+wda_data_aggregation_protocol_to_string(QmiWdaDataAggregationProtocol proto)
+{
+	for (int i = 0; i < ARRAY_SIZE(aggregation_protocols); i++) {
+		if (aggregation_protocols[i].aggreg == proto)
+			return aggregation_protocols[i].name;
+	}
+	return "unknown";
+}
+
 static void
 cmd_wda_get_data_format_cb(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg)
 {
 	struct qmi_wda_get_data_format_response res;
-	const char *name = "unknown";
-	int i;
+	void *root;
 
 	qmi_parse_wda_get_data_format_response(msg, &res);
-	for (i = 0; i < ARRAY_SIZE(link_modes); i++) {
-		if (link_modes[i].val != res.data.link_layer_protocol)
-			continue;
-
-		name = link_modes[i].name;
-		break;
-	}
-
-	blobmsg_add_string(&status, NULL, name);
+	root = blobmsg_open_table(&status, NULL);
+	blobmsg_add_u8(&status, "qos-format", res.data.qos_format);
+	blobmsg_add_string(&status, "link-layer-protocol",
+			   wda_link_layer_protocol_to_string(res.data.link_layer_protocol));
+	blobmsg_add_string(&status, "data-aggregation-protocol",
+			   wda_data_aggregation_protocol_to_string(res.data.uplink_data_aggregation_protocol));
+	blobmsg_add_u32(&status, "uplink-data-aggregation-max-datagrams",
+			res.data.uplink_data_aggregation_max_datagrams);
+	blobmsg_add_u32(&status, "uplink-data-aggregation-max-size",
+			res.data.uplink_data_aggregation_max_size);
+	blobmsg_add_string(&status, "downlink-data-aggregation-protocol",
+			   wda_data_aggregation_protocol_to_string(res.data.downlink_data_aggregation_protocol));
+	blobmsg_add_u32(&status, "downlink-data-aggregation-max-datagrams",
+			res.data.downlink_data_aggregation_max_datagrams);
+	blobmsg_add_u32(&status, "downlink-data-aggregation-max-size",
+			res.data.downlink_data_aggregation_max_size);
+	blobmsg_add_u32(&status, "download-minimum-padding",
+			res.data.download_minimum_padding);
+	blobmsg_add_u8(&status, "flow-control", res.data.flow_control);
+	blobmsg_close_table(&status, root);
 }
 
 static enum qmi_cmd_result
