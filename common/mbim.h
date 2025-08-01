@@ -50,6 +50,8 @@ struct mbim_command_message {
 	uint32_t buffer_length;
 } __packed;
 
+int mbim_proxy_cmd(struct mbim_command_message *msg, const char *path);
+bool is_mbim_proxy(struct mbim_command_message *msg);
 bool is_mbim_qmi(struct mbim_command_message *msg);
 void mbim_qmi_cmd(struct mbim_command_message *msg, int len, uint16_t tid);
 

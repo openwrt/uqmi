@@ -25,6 +25,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <strings.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 #include "uqmi.h"
 #include "qmi-errors.h"
 #include "qmi-errors.c"
@@ -120,6 +122,22 @@ static void __qmi_request_complete(struct qmi_dev *qmi, struct qmi_request *req,
 	}
 }
 
+static void __mbim_proxy_request_complete(struct qmi_dev *qmi, struct mbim_command_message *msg)
+{
+	struct qmi_request *req = list_first_entry(&qmi->req, struct qmi_request, list);
+
+	if (!req->pending)
+		return;
+
+	req->pending = false;
+	list_del(&req->list);
+	req->ret = le32_to_cpu(msg->command_type); // actually status
+	if (req->complete) {
+		*req->complete = true;
+		uloop_cancelled = true;
+	}
+}
+
 static void qmi_process_msg(struct qmi_dev *qmi, struct qmi_msg *msg)
 {
 	struct qmi_request *req;
@@ -185,6 +203,9 @@ static void qmi_notify_read(struct ustream *us, int bytes)
 			msg = (struct qmi_msg *) (buf + sizeof(*mbim));
 			msg_len = le32_to_cpu(mbim->header.length);
 			if (!is_mbim_qmi(mbim)) {
+				if (is_mbim_proxy(mbim))
+					__mbim_proxy_request_complete(qmi, mbim);
+
 				/* must consume other MBIM packets */
 				ustream_consume(us, msg_len);
 				return;
@@ -417,6 +438,66 @@ int qmi_device_open(struct qmi_dev *qmi, const char *path)
 	INIT_LIST_HEAD(&qmi->req);
 	qmi->ctl_tid = 1;
 	qmi->buf = msgbuf.u.buf;
+
+	return 0;
+}
+
+static void no_cb(struct qmi_dev *qmi, struct qmi_request *req, struct qmi_msg *msg)
+{
+}
+
+int qmi_device_proxy_open(struct qmi_dev *qmi, const char *path)
+{
+	static struct {
+		struct mbim_command_message mbim;
+		union {
+			char buf[2048];
+			struct qmi_msg msg;
+		} u;
+	} __packed msgbuf;
+	struct ustream *us = &qmi->sf.stream;
+	struct sockaddr_un addr = { .sun_family = AF_UNIX, };
+	size_t addrlen;
+	int fd;
+
+	uloop_init();
+
+	fd = socket(PF_UNIX, SOCK_STREAM, 0);
+	if (fd < 0)
+		return -1;
+
+	addrlen = 1 + sizeof(sa_family_t) + sprintf(&addr.sun_path[1], "%s-proxy", qmi->is_mbim ? "mbim" : "qmi");
+	if (connect(fd, (struct sockaddr *)&addr, addrlen))
+		return -1;
+
+	us->notify_read = qmi_notify_read;
+	ustream_fd_init(&qmi->sf, fd);
+	INIT_LIST_HEAD(&qmi->req);
+	qmi->ctl_tid = 1;
+	qmi->buf = msgbuf.u.buf;
+
+	if (qmi->is_mbim) {
+		struct qmi_request req = {};
+		int len = mbim_proxy_cmd(&msgbuf.mbim, path);
+
+		dump_packet("MBIM proxy open", &msgbuf, 90);
+		ustream_write(&qmi->sf.stream, (void *)&msgbuf, len, false);
+		memset(&req, 0, sizeof(req));
+		req.ret = -1;
+		req.pending = true;
+		list_add(&req.list, &qmi->req);
+		qmi_request_wait(qmi, &req);
+	} else {
+		struct qmi_request req;
+		struct qmi_ctl_internal_proxy_open_request sreq = {
+			QMI_INIT_PTR(device_path, (char *)path)
+		};
+
+		qmi_set_ctl_internal_proxy_open_request(&msgbuf.u.msg, &sreq);
+		dump_packet("QMI proxy open", &msgbuf.u.msg, 40);
+		qmi_request_start(qmi, &req, no_cb);
+		qmi_request_wait(qmi, &req);
+	}
 
 	return 0;
 }
